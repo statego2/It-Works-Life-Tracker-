@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMetric,addObservation,changeTarget,compareMetric,parseValue,getCurrent,getTarget,describeGap,emptyWorkspace,createArea,metricsInArea,demoWorkspace,metricProgress} from '../src/domain.js';
+import {createMetric,addObservation,changeTarget,compareMetric,parseValue,getCurrent,getTarget,describeGap,emptyWorkspace,createArea,metricsInArea,demoWorkspace,metricProgress,normalizeMetricOrders,orderedGoldMetrics,moveMetric} from '../src/domain.js';
 const sample=(type,desired,initial,extra={})=>createMetric({areaId:'test',title:'Test',kind:'standard',type,desired,initial,...extra});
 test('new workspace is blank and allows any custom folder',()=>{assert.equal(emptyWorkspace().areas.length,0);assert.equal(createArea('Πειράματα').name,'Πειράματα');});
 test('missing actual is unknown, not zero',()=>assert.equal(compareMetric(sample('number','4')).status,'unknown'));
@@ -24,3 +24,24 @@ test('compact progress is not fabricated for boolean',()=>assert.equal(metricPro
 test('compact progress is not fabricated for zero target',()=>assert.equal(metricProgress(sample('number','0','0')),null));
 test('compact progress is not fabricated for at_most metrics',()=>assert.equal(metricProgress(sample('number','2','3',{comparator:'at_most'})),null));
 test('compact progress is not fabricated for negative current',()=>assert.equal(metricProgress(sample('number','4','-2')),null));
+
+test('manual folder order preserves history and survives normalization',()=>{
+ const s=demoWorkspace();normalizeMetricOrders(s);const arr=metricsInArea(s,s.areas[0].id);const first=arr[0], second=arr[1];
+ const history=first.observations.length;assert.equal(moveMetric(s,second.id,-1,'area'),true);
+ assert.equal(metricsInArea(s,s.areas[0].id)[0].id,second.id);
+ normalizeMetricOrders(s);assert.equal(metricsInArea(s,s.areas[0].id)[0].id,second.id);
+ assert.equal(first.observations.length,history);
+});
+test('gold goal order independent of folder order',()=>{
+ const s=demoWorkspace();normalizeMetricOrders(s);
+ const gold=orderedGoldMetrics(s);assert.equal(gold.length,2);
+ assert.equal(moveMetric(s,gold[1].id,-1,'gold'),true);
+ assert.equal(orderedGoldMetrics(s)[0].id,gold[1].id);
+ assert.equal(metricsInArea(s,gold[1].areaId)[0].id,gold[1].id);
+ assert.equal(moveMetric(s,gold[1].id,-1,'gold'),false);
+});
+test('legacy workspace gets deterministic manual orders',()=>{
+ const s=demoWorkspace();assert.ok(s.metrics.every(m=>m.order===undefined));
+ normalizeMetricOrders(s);assert.ok(s.metrics.every(m=>Number.isInteger(m.order)));
+ assert.equal(orderedGoldMetrics(s).length,2);
+});
