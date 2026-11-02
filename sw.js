@@ -1,5 +1,5 @@
 // Static shell cache only. Sensitive workspace data is NOT cached by the service worker.
-const CACHE = 'itworks-shell-v1';
+const CACHE = 'itworks-shell-v2';
 const ASSETS = ['./','./index.html','./styles.css','./src/app.js','./src/domain.js','./src/storage.js','./icons/icon.svg','./manifest.webmanifest'];
 self.addEventListener('install', event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate', event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));
