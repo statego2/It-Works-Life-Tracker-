@@ -1,6 +1,7 @@
 import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-backup-v1';
 import {exportWorkspace,importWorkspace,isStorageBlocked,loadWorkspace,saveWorkspace} from './storage.js?v=20261103-backup-v1';
 import {parseBackup} from './backup.js?v=20261103-backup-v1';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-backup-v1';
 
 let workspace = loadWorkspace();
 workspace.notes ??=[];
@@ -75,6 +76,14 @@ function renderArea(area) {
     <div class="area-footer"><button class="area-add" data-action="add-metric" data-area="${esc(area.id)}"><span>＋</span> Νέος στόχος / standard</button></div>
   </section>`;
 }
+function renderVision(){
+ const image=currentVisionImage(workspace.vision);
+ return image?`<section class="vision-panel"><img class="vision-photo" src="${image.dataUrl}" alt="${esc(image.title||'Vision Board')}" /><button type="button" class="vision-edit" data-action="vision" aria-label="Επεξεργασία Vision Board">✎</button></section>`:'';
+}
+function showVisionForm(){
+ const v=workspace.vision;
+ showDialog(`<div class="dialog-head"><h2>Vision Board</h2><button type="button" class="icon-btn" data-action="close" aria-label="Κλείσιμο">✕</button></div><div class="vision-thumbs">${v.images.map(i=>`<div class="vision-thumb"><img src="${i.dataUrl}" alt="${esc(i.title)}"/><button type="button" data-action="delete-image" data-id="${esc(i.id)}" aria-label="Αφαίρεση">✕</button></div>`).join('')}</div><form id="entry-form" data-form="vision"><label class="check-line"><input type="checkbox" name="visible" ${v.visible?'checked':''}/> Εμφάνιση στο dashboard</label><div class="field"><label>Προβολή</label><select name="mode"><option value="fixed" ${v.mode==='fixed'?'selected':''}>Σταθερή</option><option value="rotate" ${v.mode==='rotate'?'selected':''}>Εναλλαγή</option></select></div><div class="field"><label>Εναλλαγή κάθε</label><select name="rotationHours">${[1,3,6,12,24].map(h=>`<option value="${h}" ${v.rotationHours===h?'selected':''}>${h} ώρες</option>`).join('')}</select></div></form><label class="outline-btn vision-upload">＋ Φωτογραφία<input type="file" id="vision-file" accept="image/jpeg,image/png,image/webp" hidden /></label><p class="form-hint">Έως 8 φωτογραφίες, αποθηκευμένες τοπικά.</p><div class="dialog-actions"><button type="button" class="outline-btn" data-action="close">Κλείσιμο</button><button type="submit" form="entry-form" class="primary-btn">Αποθήκευση</button></div>`);
+}
 function renderNotes(){
  const list=[...workspace.notes].sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt.localeCompare(a.updatedAt));
  return `<section class="notes-section"><button class="outline-btn" data-action="add-note">＋ Νέα σημείωση</button><div class="notes-list">${list.map(n=>`<button class="note-card" data-action="edit-note" data-id="${esc(n.id)}"><strong>${esc(n.title||'Χωρίς τίτλο')}</strong><span>${esc(n.body.slice(0,160))}</span></button>`).join('')}</div></section>`;
@@ -99,9 +108,9 @@ function render(){
       <div class="sidebar-bottom"><span class="local-dot"></span><div><b>Local Preview</b><small>Χωρίς λογαριασμό ή cloud sync</small></div></div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button></div></details></div></header>
+      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button></div></details></div></header>
       <div class="content-wrap">
-        <div class="page-heading"><h1>${esc(title)}</h1></div>${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}
+        <div class="page-heading"><h1>${esc(title)}</h1></div>${view==='all'?renderVision():''}${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
         `:''}
         ${showGold?`<section class="gold-section"><div class="section-heading"><div><h2>Οι χρυσοί στόχοι μου</h2></div><button class="text-btn" data-action="navigate" data-view="gold">Προβολή όλων →</button></div><div class="gold-grid">${gold.slice(0,3).map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div></section>`:''}
@@ -193,6 +202,8 @@ document.addEventListener('click',event=>{
     if(action==='history')return showHistory(metricById(id));
     if(action==='purpose')return showPurposeForm();
     if(action==='add-note')return showNoteForm();
+    if(action==='vision')return showVisionForm();
+    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;const previous=workspace.vision.images;workspace.vision.images=previous.filter(i=>i.id!==id);if(!saveWorkspace(workspace)){workspace.vision.images=previous;throw new Error('Δεν αποθηκεύτηκε η αλλαγή.');}return showVisionForm();}
     if(action==='edit-note')return showNoteForm(noteById(id));
     if(action==='delete-note'){if(!confirm('Να διαγραφεί η σημείωση;'))return;workspace.notes=workspace.notes.filter(n=>n.id!==id);document.getElementById('active-dialog')?.close();return commit();}
     if(action==='import'){document.getElementById('backup-file')?.click();return;}
@@ -223,6 +234,24 @@ document.addEventListener('change',async e=>{
   view='all';commit('Το backup επαναφέρθηκε.');
  }catch(error){toast(error.message||'Το backup απορρίφθηκε.',true);}
 });
+document.addEventListener('change',async event=>{
+ if(event.target.id!=='vision-file')return;
+ const file=event.target.files?.[0];event.target.value='';
+ if(!file)return;
+ try{
+  if(workspace.vision.images.length>=8)throw new Error('Μέχρι 8 φωτογραφίες.');
+  const dataUrl=await compressVisionPhoto(file);
+  const previous=workspace.vision.images;
+  workspace.vision.images=[...previous,{id:crypto.randomUUID(),title:cleanText(file.name.replace(/\.[^.]+$/,''),120),createdAt:new Date().toISOString(),dataUrl}];
+  if(!saveWorkspace(workspace)){workspace.vision.images=previous;throw new Error('Δεν υπάρχει αρκετός χώρος αποθήκευσης.');}
+  showVisionForm();
+ }catch(error){toast(error.message||'Αποτυχία εισαγωγής εικόνας.',true);}
+});
+setInterval(()=>{
+ const image=document.querySelector('.vision-photo');
+ const updated=currentVisionImage(workspace.vision);
+ if(image&&updated&&image.src!==updated.dataUrl)image.src=updated.dataUrl;
+},60_000);
 document.addEventListener('submit',e=>{
   const form=e.target;if(form.id!=='entry-form')return;e.preventDefault();
   const data=new FormData(form);const id=form.dataset.id;
@@ -243,6 +272,7 @@ document.addEventListener('submit',e=>{
       const changed=addObservation(m,data.get('current-input'));workspace.metrics=workspace.metrics.map(x=>x.id===id?changed:x);
     }
     else if(form.dataset.form==='purpose')workspace.purpose={text:cleanText(data.get('text'),1000),visible:data.get('visible')==='on'};
+    else if(form.dataset.form==='vision')workspace.vision={...workspace.vision,visible:data.get('visible')==='on',mode:data.get('mode')==='rotate'?'rotate':'fixed',rotationHours:Number(data.get('rotationHours'))};
     else if(form.dataset.form==='note'){
       const now=new Date().toISOString(),old=noteById(id);
       const next={id:old?.id||crypto.randomUUID(),title:cleanText(data.get('title'),120),body:cleanText(data.get('body'),4000),pinned:data.get('pinned')==='on',createdAt:old?.createdAt||now,updatedAt:now};
