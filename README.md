@@ -4,7 +4,21 @@
 
 A personal life dashboard that compares **current reality** with **self-defined standards and goals** across any number of user-created areas (folders). The product must never decide which life a person *should* want.
 
-> Status: **Product foundation / documentation only**. No application, backend, deployment, or working authentication has been built yet.
+> Status: **Working local-first Web/PWA prototype** with folder and goal tracking, per-metric progress, gold goals, manual ordering, history, personal notes, vision board and portable JSON backup/restore. **No working cloud sync or sign-in yet.** An RLS-tested draft cloud schema exists, but it is not connected to the app.
+
+## Run the existing app
+
+Visit [the published GitHub Pages prototype](https://statego2.github.io/It-Works-Life-Tracker-/) or run locally:
+
+```bash
+npm run dev
+npm run check
+npm test
+```
+
+The app stores data in the **current browser's localStorage**. This is not a secure cloud account. The Settings menu includes **Export** and **Restore backup**; save a copy before clearing browser data. Vision images are compressed and stored locally, so keep exports small. Do not add highly sensitive information until authenticated, private cloud storage is implemented and verified.
+
+Tests run in GitHub Actions, including an isolated PostgreSQL 16 two-account RLS smoke suite for the *future* cloud schema. The database schema is not installed in a production project.
 
 ## Confirmed product decisions (2026-11-02)
 
@@ -31,6 +45,8 @@ A personal life dashboard that compares **current reality** with **self-defined 
 | [ROADMAP.md](ROADMAP.md) | Incremental delivery plan and measurable completion gates |
 | [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md) | Tests, CI gates, cross-account isolation |
 | [AGENTS.md](AGENTS.md) | Mandatory implementation contract for AI coding agents |
+| [FEATURE_IDEAS.md](FEATURE_IDEAS.md) | Living product ideas and inspiration |
+| [docs/CLOUD_IMPLEMENTATION_STATUS.md](docs/CLOUD_IMPLEMENTATION_STATUS.md) | Prepared backend schema vs actual implementation |
 
 ## Domain language
 
@@ -50,8 +66,6 @@ A personal life dashboard that compares **current reality** with **self-defined 
 4. Never seed real personal financial, romantic, religious, or health information into public repository files or demos. Use clearly fictional sample data.
 5. Do not declare the app live, synced, secure, or PWA-installable until those behaviors are implemented and verified.
 
-## First implementation target
+## Next implementation target
 
-A signed-in user can create an area, create a standard or goal, set current and desired values, update actual values without losing history, and view **Current → Target** side by side. See [ROADMAP.md](ROADMAP.md) for the sequence.
-
-Architecture and stack selections remain proposals until proven in a working scaffold.
+Complete a real **authenticated API and secure cloud adapter** with migrations and tested account isolation, keeping the existing browser data portable. Native iOS widgets and notifications require a separate Mac/Xcode phase. See [ROADMAP.md](ROADMAP.md) for the intended progression.
