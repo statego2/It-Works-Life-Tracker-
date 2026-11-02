@@ -1,4 +1,4 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,VALUE_TYPES} from './domain.js';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,metricProgress,VALUE_TYPES} from './domain.js';
 import {exportWorkspace,loadWorkspace,saveWorkspace} from './storage.js';
 
 let workspace = loadWorkspace();
@@ -26,21 +26,29 @@ function getCounts(){const comparisons=workspace.metrics.map(compareMetric);retu
 
 function renderMetric(metric, condensed=false) {
   const result=compareMetric(metric), actual=result.actual?.value, target=result.target?.value;
-  return `<article class="metric-card ${condensed?'condensed':''}">
-    <div class="metric-top">
-      <div class="metric-info"><span class="type-chip">${label(metric)}</span><h4 title="${esc(metric.title)}">${esc(metric.title)}</h4></div>
-      <div class="metric-tools">
-        <button class="icon-btn gold-btn ${metric.gold?'selected':''}" data-action="gold" data-id="${esc(metric.id)}" aria-label="${metric.gold?'Αφαίρεση από χρυσούς στόχους':'Χρυσός στόχος'}" title="${metric.gold?'Αφαίρεση από χρυσούς στόχους':'Χρυσός στόχος'}">${metric.gold?'★':'☆'}</button>
-        <button class="icon-btn" data-action="edit-metric" data-id="${esc(metric.id)}" aria-label="Επεξεργασία στόχου" title="Επεξεργασία">✎</button>
+  const progress=metricProgress(metric,result);
+  const active=['met','unmet'].includes(result.status);
+  const currentText=valueLabel(actual,metric), targetText=valueLabel(target,metric);
+  const progressMarkup=progress
+    ? `<div class="compact-track" role="progressbar" aria-label="${esc(metric.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.filled}" aria-valuetext="${esc(currentText)} από ${esc(targetText)}"><span style="width:${progress.filled}%"></span></div><div class="compact-percent">${new Intl.NumberFormat('el-GR',{maximumFractionDigits:1}).format(progress.percentage)}%</div>`
+    : `<div class="compact-state">${result.status==='unknown'?'Δεν έχει καταγραφεί':result.status==='incompatible'?'Μη συγκρίσιμες τιμές':result.status==='not_configured'?'Χωρίς standard':metric.type==='boolean'?(result.status==='met'?'✓ Σύμφωνο με τον στόχο':'Διαφορετική κατάσταση'):(active?'Σύγκριση χωρίς ποσοστό':'—')}</div>`;
+  return `<article class="metric-card compact-card ${condensed?'condensed':''}">
+    <div class="compact-top">
+      <button type="button" class="compact-open" data-action="toggle-metric" data-id="${esc(metric.id)}" aria-expanded="false" aria-label="Λεπτομέρειες: ${esc(metric.title)}">
+        <span class="compact-title">${esc(metric.title)}</span><span class="compact-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <button type="button" class="icon-btn gold-btn ${metric.gold?'selected':''}" data-action="gold" data-id="${esc(metric.id)}" aria-label="${metric.gold?'Αφαίρεση από χρυσούς στόχους':'Χρυσός στόχος'}" title="Χρυσός στόχος">${metric.gold?'★':'☆'}</button>
+    </div>
+    <div class="compact-values"><span><small>ΤΩΡΑ</small><strong>${currentText}</strong></span><span><small>STANDARD / ΣΤΟΧΟΣ</small><strong>${targetText}</strong></span></div>
+    ${progressMarkup}
+    <div class="compact-details" hidden>
+      <div class="compact-meta">${label(metric)} · ${result.actual?'Ενημερώθηκε '+dateLabel(result.actual.observedAt):'Χωρίς ενημέρωση'}${metric.type==='frequency'?' · Αυτοαναφερόμενη συχνότητα':''}</div>
+      <div class="compact-actions">
+        <button type="button" class="small-primary" data-action="update" data-id="${esc(metric.id)}">Ενημέρωση</button>
+        <button type="button" class="outline-btn" data-action="history" data-id="${esc(metric.id)}">Ιστορικό</button>
+        <button type="button" class="outline-btn" data-action="edit-metric" data-id="${esc(metric.id)}">Επεξεργασία</button>
       </div>
     </div>
-    <div class="compare-grid">
-      <div class="compare-block current"><span class="compare-label">ΤΩΡΑ</span><strong>${valueLabel(actual,metric)}</strong>${result.actual?`<small>Ενημ. ${dateLabel(result.actual.observedAt)}</small>`:'<small>Άγνωστη κατάσταση</small>'}</div>
-      <div class="compare-block target"><span class="compare-label">STANDARD / ΣΤΟΧΟΣ</span><strong>${valueLabel(target,metric)}</strong><small>${esc(metric.comparator==='at_most'?'Μέγιστο':metric.comparator==='exact'?'Ακριβώς':'Τουλάχιστον')}${metric.type==='boolean'?' · Ναι/Όχι':''}</small></div>
-    </div>
-    <div class="metric-bottom"><span class="state-label ${esc(result.status)}"><i aria-hidden="true"></i>${statusName[result.status]??'Άγνωστο'}${result.status==='unmet'?' · '+esc(describeGap(metric,result)):''}</span>
-      <div class="metric-actions"><button class="text-btn" data-action="history" data-id="${esc(metric.id)}">Ιστορικό</button><button class="small-primary" data-action="update" data-id="${esc(metric.id)}">+ Ενημέρωση</button></div></div>
-    ${metric.type==='frequency'?'<div class="metric-note">Η συχνότητα βασίζεται σε δική σου καταγραφή, όχι σε επαληθευμένα συμβάντα.</div>':''}
   </article>`;
 }
 function renderArea(area) {
@@ -81,11 +89,12 @@ function render(){
       <div class="content-wrap">
         <div class="page-heading"><div class="eyebrow">PERSONAL LIFE DASHBOARD</div><h1>${esc(title)}</h1><p>${selectedArea?'Οι δείκτες που έχεις επιλέξει για αυτόν τον τομέα.':view==='gold'?'Όσα έχεις ορίσει ως σημαντικότερες προσωπικές προτεραιότητες.':'Μια καθαρή εικόνα της σημερινής σου κατάστασης σε σχέση με τη ζωή που εσύ ορίζεις.'}</p></div>
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
-        <section class="stats-grid" aria-label="Συνοπτικά στοιχεία"><div class="stat"><span>Τομείς ζωής</span><strong>${counts.areas}</strong><small>Προσωπικοί φάκελοι</small></div><div class="stat"><span>Δείκτες</span><strong>${counts.metrics}</strong><small>Standards & στόχοι</small></div><div class="stat"><span>Επιτευγμένα</span><strong>${counts.met}</strong><small>Από όσα καταγράφηκαν</small></div><div class="stat"><span>Χωρίς καταγραφή</span><strong>${counts.unknown}</strong><small>Ακόμη άγνωστα</small></div></section>`:''}
+        `:''}
         ${showGold?`<section class="gold-section"><div class="section-heading"><div><span class="eyebrow gold-eyebrow">★ ΠΡΟΣΩΠΙΚΕΣ ΠΡΟΤΕΡΑΙΟΤΗΤΕΣ</span><h2>Οι χρυσοί στόχοι μου</h2></div><button class="text-btn" data-action="navigate" data-view="gold">Προβολή όλων →</button></div><div class="gold-grid">${gold.slice(0,3).map(m=>renderMetric(m,true)).join('')}</div></section>`:''}
         ${view==='gold'?`<div class="section-heading"><h2>Σημαντικές επιλογές</h2></div>${gold.length?`<div class="gold-grid">${gold.map(m=>renderMetric(m,true)).join('')}</div>`:'<section class="empty-panel"><span class="empty-art">☆</span><h2>Δεν έχεις επιλέξει χρυσούς στόχους</h2><p>Πάτησε το αστέρι σε έναν δείκτη για να εμφανίζεται εδώ.</p><button class="primary-btn" data-action="navigate" data-view="all">Πίσω στους τομείς</button></section>'}`:''}
         ${view!=='gold'?`<section class="areas-section"><div class="section-heading"><div><span class="eyebrow">${selectedArea?'ΟΙ ΣΤΟΧΟΙ ΜΟΥ':'ΠΡΟΣΩΠΙΚΕΣ ΠΕΡΙΟΧΕΣ'}</span><h2>${selectedArea?'Standards & στόχοι':'Οι τομείς της ζωής μου'}</h2></div><button class="outline-btn" data-action="add-area"><span>＋</span> Νέος τομέας</button></div>
         ${visibleAreas.length?`<div class="areas-stack">${visibleAreas.map(renderArea).join('')}</div>`:`<section class="empty-panel"><span class="empty-art">▦</span><h2>Η ζωή σου, οι δικοί σου τομείς</h2><p>Δημιούργησε τους φακέλους που θέλεις. Μέσα σε κάθε έναν θα βάζεις το δικό σου standard και πού βρίσκεσαι σήμερα.</p><div class="empty-actions"><button class="primary-btn" data-action="add-area">＋ Δημιουργία πρώτου τομέα</button><button class="outline-btn" data-action="load-demo">Δες ένα παράδειγμα</button></div></section>`}</section>`:''}
+        <section class="stats-grid" aria-label="Συνοπτικά στοιχεία"><div class="stat"><span>Τομείς ζωής</span><strong>${counts.areas}</strong><small>Προσωπικοί φάκελοι</small></div><div class="stat"><span>Δείκτες</span><strong>${counts.metrics}</strong><small>Standards & στόχοι</small></div><div class="stat"><span>Επιτευγμένα</span><strong>${counts.met}</strong><small>Από όσα καταγράφηκαν</small></div><div class="stat"><span>Χωρίς καταγραφή</span><strong>${counts.unknown}</strong><small>Ακόμη άγνωστα</small></div></section>
         <footer class="footnote"><b>Προσοχή:</b> αυτή είναι τοπική δοκιμαστική έκδοση. Τα δεδομένα μένουν μόνο στον συγκεκριμένο browser, χωρίς σύνδεση, κρυπτογράφηση λογαριασμού ή συγχρονισμό. Απόφυγε ευαίσθητα προσωπικά στοιχεία προς το παρόν. <button data-action="export">Εξαγωγή JSON</button> <button data-action="reset">Εκκαθάριση</button></footer>
       </div>
     </main>
@@ -114,7 +123,7 @@ function measurementFields(type, targetValue=null, actualValue=null, editing=fal
     ${type==='number'?`<div class="field"><label for="unit">Μονάδα (προαιρετικό)</label><input name="unit" id="unit" maxlength="30" placeholder="π.χ. φίλοι" value="${esc(existingUnit)}"/></div>`:''}
     ${type==='money'?`<div class="field"><label>Νόμισμα</label><select name="currency" ${editing?'disabled':''}>${selectOptions([['EUR','Ευρώ (EUR)'],['USD','Δολάριο (USD)'],['GBP','Λίρα (GBP)']],currency)}</select></div>`:''}
     ${type==='frequency'||type==='money'?`<div class="field"><label>Περίοδος</label><select name="period" ${editing?'disabled':''}>${selectOptions([...(type==='money'?[['once','Συνολικό ποσό']]:[]),['day','Ημέρα'],['week','Εβδομάδα'],['month','Μήνας'],['year','Έτος']],period)}</select></div>`:''}
-  </div><div class="form-grid values-grid"><div class="field"><label for="desired">STANDARD / ΣΤΟΧΟΣ</label>${valueInput(type,'desired',targetValue,true)}</div>${editing?'':`<div class="field"><label for="initial">ΤΩΡΙΝΗ ΚΑΤΑΣΤΑΣΗ <small>(προαιρετικά)</small></label>${valueInput(type,'initial',actualValue,false)}</div>`}</div>`;
+  </div><div class="form-grid values-grid">${editing?'':`<div class="field"><label for="initial">ΤΩΡΙΝΗ ΚΑΤΑΣΤΑΣΗ <small>(προαιρετικά)</small></label>${valueInput(type,'initial',actualValue,false)}</div>`}<div class="field"><label for="desired">STANDARD / ΣΤΟΧΟΣ</label>${valueInput(type,'desired',targetValue,true)}</div></div>`;
 }
 function valueInput(type,name,val,required){
   if(type==='boolean')return `<select name="${name}" id="${name}" ${required?'required':''}>${!required?'<option value="">Δεν έχει καταγραφεί</option>':''}<option value="yes" ${valueForInput(val)==='yes'?'selected':''}>Ναι</option><option value="no" ${valueForInput(val)==='no'?'selected':''}>Όχι</option></select>`;
@@ -144,6 +153,14 @@ document.addEventListener('click',event=>{
   const b=event.target.closest('[data-action]');if(!b)return;
   const action=b.dataset.action,id=b.dataset.id;
   try{
+    if(action==='toggle-metric'){
+      const card=b.closest('.compact-card'), detail=card?.querySelector('.compact-details');
+      if(!detail)return;
+      detail.hidden=!detail.hidden;
+      b.setAttribute('aria-expanded',String(!detail.hidden));
+      card.classList.toggle('expanded',!detail.hidden);
+      return;
+    }
     if(action==='close'){document.getElementById('active-dialog')?.close();return;}
     if(action==='navigate'){view=b.dataset.view;render();window.scrollTo({top:0,behavior:'smooth'});return;}
     if(action==='add-area')return showAreaForm();
