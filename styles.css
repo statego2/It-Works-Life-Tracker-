@@ -3,3 +3,34 @@
 @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.shell{grid-template-columns:218px minmax(0,1fr)}.sidebar{padding:21px 10px}}@media(max-width:760px){.shell{display:block}.sidebar{position:relative;width:100%;height:auto;padding:12px 14px 10px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin:0 4px 11px}.brand-icon{width:31px;height:31px;font-size:21px}.brand b{font-size:20px}.brand small{display:none}.nav-section-label,.side-heading,.sidebar .nav-divider,.sidebar-bottom,.sidebar-empty{display:none}.sidebar nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.sidebar nav::-webkit-scrollbar{display:none}.nav-item{flex:0 0 auto;width:auto;padding:10px 12px;white-space:nowrap;font-size:12px}.nav-item>span:first-child{font-size:15px}.nav-name{max-width:125px}.sidebar nav+nav{margin-top:4px}.topbar{height:50px;padding:0 18px}.topbar-brand{font-size:9px}.topbar-actions{gap:10px}.preview-tag{font-size:9px}.top-icon span{display:none}.content-wrap{padding:27px 16px}.stats-grid{gap:9px}.stat{padding:14px;min-height:105px}.stat strong{font-size:26px}.section-heading{align-items:center}.section-heading h2{font-size:20px}.area-metrics{padding:11px;grid-template-columns:1fr}.area-head{padding:16px}.area-controls{gap:0}.metric-card{padding:14px}.page-heading h1{font-size:27px}.purpose-card{padding:18px}.purpose-card p{font-size:15px}.form-grid{grid-template-columns:1fr;gap:0}.values-grid{grid-template-columns:1fr 1fr;gap:9px}.values-grid .field input{padding:10px}.dialog-content{padding:20px}.gold-grid{grid-template-columns:1fr}.metric-bottom{flex-wrap:wrap}.footnote{padding-bottom:65px}}@media(max-width:380px){.compare-block strong{font-size:15px}.metric-actions{width:100%;justify-content:flex-end}.compare-label{font-size:8px}.area-heading h3{font-size:15px}}
 
 .danger-link{border:0;background:transparent;color:#ac5558;font-size:12px;text-decoration:underline;padding:3px 0 8px}.danger-link:hover{color:#842b30}
+
+
+/* Compact goal cards: overview first, details only on demand. */
+.area-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:10px;padding:12px}
+.compact-card{padding:12px 13px;gap:8px;border-radius:12px;background:#fff}
+.compact-top{display:flex;align-items:center;justify-content:space-between;gap:5px;min-height:26px}
+.compact-open{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:1;min-width:0;padding:3px 0;background:transparent;border:0;color:inherit;text-align:left;cursor:pointer}
+.compact-title{font-size:13px;line-height:1.35;font-weight:750;overflow-wrap:anywhere}
+.compact-chevron{color:#9399af;font-size:17px;transition:transform .2s}
+.compact-card.expanded .compact-chevron{transform:rotate(180deg)}
+.compact-top .gold-btn{font-size:20px;padding:3px 6px;min-height:28px;min-width:28px;flex:none}
+.compact-values{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.compact-values>span{min-width:0}
+.compact-values>span:last-child{text-align:right}
+.compact-values small{display:block;font-size:9px;letter-spacing:.35px;font-weight:750;color:#949aab;margin-bottom:3px}
+.compact-values strong{font-size:14px;line-height:1.25;font-weight:780;overflow-wrap:anywhere;display:block}
+.compact-track{width:100%;height:7px;overflow:hidden;border-radius:999px;background:#eaebf3}
+.compact-track>span{display:block;height:100%;border-radius:999px;background:#7770cb;transition:width .2s ease}
+.compact-percent{font-size:11px;text-align:right;color:#767c91;font-weight:700;margin-top:-3px}
+.compact-state{font-size:11px;color:#81879a;min-height:18px}
+.compact-details[hidden]{display:none!important}
+.compact-details{margin-top:5px;padding-top:12px;border-top:1px solid #eeeff5}
+.compact-meta{font-size:11px;color:#8a90a3;line-height:1.5;margin-bottom:10px}
+.compact-actions{display:flex;flex-wrap:wrap;gap:7px}
+.compact-actions .outline-btn,.compact-actions .small-primary{font-size:11px;padding:8px 10px}
+.stats-grid{margin:36px 0 0}
+.stat{min-height:90px;padding:13px}
+.stat strong{font-size:23px;margin:6px 0 2px}
+.stat span{font-size:11px}
+.stat small{font-size:10px}
+@media(max-width:760px){.area-metrics{grid-template-columns:1fr;gap:8px;padding:10px}.compact-card{padding:11px 12px}.stats-grid{margin-top:26px}.stat{min-height:85px}}
