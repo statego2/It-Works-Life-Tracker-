@@ -133,7 +133,49 @@ export function changeTarget(metric, input, {comparator, title, kind, unit} = {}
   return next;
 }
 export function orderedAreas(state) { return [...state.areas].sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)); }
-export function metricsInArea(state, areaId) { return state.metrics.filter(m => m.areaId === areaId).sort((a,b)=>Number(b.gold)-Number(a.gold)||a.createdAt.localeCompare(b.createdAt)); }
+/** Independent, persistent manual ordering in folders and in the gold collection.
+ * Older localStorage workspaces have no order fields, so keep their original order
+ * on first normalization rather than changing the user's existing layout.
+ */
+export function normalizeMetricOrders(state) {
+  for (const area of orderedAreas(state)) {
+    const metrics = state.metrics.filter(m => m.areaId === area.id);
+    const legacy = metrics.every(m => !Number.isFinite(m.order));
+    const sorted = legacy
+      ? metrics.sort((a,b) => Number(b.gold)-Number(a.gold) || a.createdAt.localeCompare(b.createdAt))
+      : metrics.sort((a,b) => (Number.isFinite(a.order)?a.order:Infinity) - (Number.isFinite(b.order)?b.order:Infinity) || a.createdAt.localeCompare(b.createdAt));
+    sorted.forEach((m,i) => { m.order=i; });
+  }
+  const gold = state.metrics.filter(m => m.gold);
+  const legacyGold = gold.every(m => !Number.isFinite(m.goldOrder));
+  const areaRank = new Map(orderedAreas(state).map((a,i) => [a.id,i]));
+  const sortedGold = legacyGold
+    ? gold.sort((a,b) => (areaRank.get(a.areaId)??Infinity)-(areaRank.get(b.areaId)??Infinity) || a.createdAt.localeCompare(b.createdAt))
+    : gold.sort((a,b) => (Number.isFinite(a.goldOrder)?a.goldOrder:Infinity)-(Number.isFinite(b.goldOrder)?b.goldOrder:Infinity) || a.createdAt.localeCompare(b.createdAt));
+  sortedGold.forEach((m,i) => { m.goldOrder=i; });
+  return state;
+}
+export function metricsInArea(state, areaId) {
+  return state.metrics.filter(m => m.areaId === areaId)
+    .sort((a,b) => (Number.isFinite(a.order)?a.order:Infinity)-(Number.isFinite(b.order)?b.order:Infinity) || a.createdAt.localeCompare(b.createdAt));
+}
+export function orderedGoldMetrics(state) {
+  return state.metrics.filter(m => m.gold)
+    .sort((a,b) => (Number.isFinite(a.goldOrder)?a.goldOrder:Infinity)-(Number.isFinite(b.goldOrder)?b.goldOrder:Infinity) || a.createdAt.localeCompare(b.createdAt));
+}
+/** Reorder by adjacent swap, with unchanged metric identifiers and histories. */
+export function moveMetric(state, metricId, direction, collection='area') {
+  if (![-1,1].includes(direction) || !['area','gold'].includes(collection)) return false;
+  normalizeMetricOrders(state);
+  const metric = state.metrics.find(m => m.id === metricId);
+  if (!metric || (collection==='gold' && !metric.gold)) return false;
+  const ordered = collection==='gold' ? orderedGoldMetrics(state) : metricsInArea(state,metric.areaId);
+  const from=ordered.findIndex(m => m.id === metricId), to=from+direction;
+  if (from<0 || to<0 || to>=ordered.length) return false;
+  [ordered[from],ordered[to]]=[ordered[to],ordered[from]];
+  ordered.forEach((m,i) => { if(collection==='gold') m.goldOrder=i; else m.order=i; });
+  return true;
+}
 export function isWorkspaceShape(value) {
   return value !== null && typeof value === "object" && value.version === 1 && Array.isArray(value.areas) && Array.isArray(value.metrics) && value.purpose && typeof value.purpose.text === "string" && typeof value.purpose.visible === "boolean";
 }
