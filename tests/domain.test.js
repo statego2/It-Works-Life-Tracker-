@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMetric,addObservation,changeTarget,compareMetric,parseValue,getCurrent,getTarget,describeGap,emptyWorkspace,createArea,metricsInArea,demoWorkspace} from '../src/domain.js';
+import {createMetric,addObservation,changeTarget,compareMetric,parseValue,getCurrent,getTarget,describeGap,emptyWorkspace,createArea,metricsInArea,demoWorkspace,metricProgress} from '../src/domain.js';
 const sample=(type,desired,initial,extra={})=>createMetric({areaId:'test',title:'Test',kind:'standard',type,desired,initial,...extra});
 test('new workspace is blank and allows any custom folder',()=>{assert.equal(emptyWorkspace().areas.length,0);assert.equal(createArea('Πειράματα').name,'Πειράματα');});
 test('missing actual is unknown, not zero',()=>assert.equal(compareMetric(sample('number','4')).status,'unknown'));
@@ -16,3 +16,11 @@ test('same target does not create redundant revision',()=>{let m=sample('number'
 test('gold metrics sort first inside folder',()=>{const s=demoWorkspace();const a=metricsInArea(s,s.areas[0].id);assert.equal(a[0].gold,true);});
 test('incompatible units cannot be compared',()=>{const m=sample('money','2000','100',{period:'month'});m.observations[0].value.period='year';assert.equal(compareMetric(m).status,'incompatible');});
 test('zero goal is safe',()=>{const m=sample('number','0','0',{comparator:'exact'});assert.equal(compareMetric(m).status,'met');});
+
+test('compact progress for count is 25%',()=>assert.equal(metricProgress(sample('number','4','1')).percentage,25));
+test('compact progress caps filled track at 100%, not underlying achievement',()=>{const p=metricProgress(sample('number','4','5'));assert.equal(p.filled,100);assert.equal(p.percentage,125);});
+test('compact progress is not fabricated for missing actuals',()=>assert.equal(metricProgress(sample('number','4')),null));
+test('compact progress is not fabricated for boolean',()=>assert.equal(metricProgress(sample('boolean','yes','no')),null));
+test('compact progress is not fabricated for zero target',()=>assert.equal(metricProgress(sample('number','0','0')),null));
+test('compact progress is not fabricated for at_most metrics',()=>assert.equal(metricProgress(sample('number','2','3',{comparator:'at_most'})),null));
+test('compact progress is not fabricated for negative current',()=>assert.equal(metricProgress(sample('number','4','-2')),null));
