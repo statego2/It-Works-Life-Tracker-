@@ -62,6 +62,20 @@ export function compareMetric(metric, at = Date.now()) {
   const gap = Number((t.amount - a.amount).toFixed(6));
   return { status: met ? "met" : "unmet", actual, target, gap };
 }
+/** Ratio only for compatible, nonnegative, positive-target "at least" metrics.
+ * This is per-metric progress, never a universal score of someone's life.
+ * No invented percent for booleans, lower-is-better, zero targets or missing data.
+ */
+export function metricProgress(metric, comparison = compareMetric(metric)) {
+  if (metric.type === "boolean" || (metric.comparator || "at_least") !== "at_least") return null;
+  if (!["met", "unmet"].includes(comparison.status)) return null;
+  const actual = comparison.actual?.value?.amount;
+  const target = comparison.target?.value?.amount;
+  if (!Number.isFinite(actual) || !Number.isFinite(target) || actual < 0 || target <= 0) return null;
+  const ratio = (actual / target) * 100;
+  if (!Number.isFinite(ratio)) return null;
+  return {percentage: Math.round(ratio * 10) / 10, filled: Math.min(100, Math.max(0, ratio))};
+}
 const PERIOD_LABELS = { once: "", day: "/ημέρα", week: "/εβδ.", month: "/μήνα", year: "/έτος" };
 export function formatValue(value) {
   if (!value) return "Δεν έχει καταγραφεί";
