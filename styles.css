@@ -59,3 +59,20 @@
 html,body{max-width:100%;overflow-x:clip}
 input:not([type=checkbox]),select,textarea{font-size:16px}
 @media(max-width:760px){.settings-toggle{width:40px;height:40px}.topbar{overflow:visible}}
+
+/* Small personal notes and unobtrusive storage warning. */
+.save-warning{border:1px solid #e8a0a0;padding:13px;border-radius:12px;background:#fff2ef;color:#9b3a37;margin-bottom:18px;font-size:12px}
+.notes-section>.outline-btn{margin-bottom:17px}
+.notes-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:12px}
+.note-card{padding:17px;border:1px solid var(--line);background:#fff;border-radius:13px;text-align:left;color:inherit;display:grid;gap:7px}
+.note-card strong{font-size:14px}.note-card span{font-size:12px;color:#777e93;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Optional vision images live apart from the essentialist metric list. */
+.vision-panel{position:relative;overflow:hidden;border-radius:16px;margin:0 0 22px;background:#eceaf5;min-height:130px}
+.vision-photo{width:100%;max-height:320px;object-fit:cover;display:block}
+.vision-edit{position:absolute;right:12px;top:12px;border:1px solid #ffffff90;border-radius:9px;color:white;background:#28254385;padding:7px 10px}
+.vision-thumbs{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.vision-thumb{width:94px;height:94px;position:relative;border-radius:10px;overflow:hidden;background:#eee}
+.vision-thumb img{height:100%;width:100%;object-fit:cover}
+.vision-thumb button{position:absolute;right:4px;top:4px;background:#fff;border:0;border-radius:7px;padding:4px 6px}
+.vision-upload{display:inline-block;cursor:pointer;margin:12px 0}
