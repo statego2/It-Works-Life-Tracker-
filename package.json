@@ -1,0 +1,13 @@
+{
+  "name": "it-works-life-tracker-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dependency-free first working PWA prototype of It Works Life Tracker",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/domain.js && node --check src/storage.js && node --check src/app.js && node --check sw.js && node --check scripts/serve.mjs"
+  },
+  "engines": {"node": ">=20"}
+}
