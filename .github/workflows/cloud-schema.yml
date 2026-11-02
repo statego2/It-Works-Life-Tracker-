@@ -1,0 +1,45 @@
+name: Cloud schema smoke test
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/cloud-schema.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/cloud-schema.yml'
+  workflow_dispatch:
+
+jobs:
+  postgres-rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated auth emulator
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/bootstrap.sql
+      - name: Apply migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103000000_initial_schema.sql
+      - name: Verify ownership isolation and foreign keys
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/rls-smoke.sql
