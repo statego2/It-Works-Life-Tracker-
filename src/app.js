@@ -1,5 +1,5 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-essential-v1';
-import {exportWorkspace,loadWorkspace,saveWorkspace} from './storage.js?v=20261103-essential-v1';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-settings-v2';
+import {exportWorkspace,loadWorkspace,saveWorkspace} from './storage.js?v=20261103-settings-v2';
 
 let workspace = loadWorkspace();
 let view = 'all';
@@ -88,7 +88,7 @@ function render(){
       <div class="sidebar-bottom"><span class="local-dot"></span><div><b>Local Preview</b><small>Χωρίς λογαριασμό ή cloud sync</small></div></div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><button class="order-mode-btn" data-action="toggle-order" aria-pressed="${ordering}">${ordering?'✓ Τέλος':'↕ Σειρά'}</button><button class="top-icon" data-action="export" title="Εξαγωγή δεδομένων">⇩ <span>Backup</span></button></div></header>
+      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button></div></details></div></header>
       <div class="content-wrap">
         <div class="page-heading"><h1>${esc(title)}</h1></div>
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
@@ -153,6 +153,8 @@ function showHistory(m){const actual=[...m.observations].reverse().map(o=>`<li><
 function repositionArea(id,dir){const sorted=orderedAreas(workspace),i=sorted.findIndex(a=>a.id===id),other=sorted[i+dir];if(i<0||!other)return; const x=sorted[i]; const original=x.order;x.order=other.order;other.order=original; if(x.order===other.order){sorted.forEach((a,j)=>a.order=j);const tmp=sorted[i];sorted[i]=sorted[i+dir];sorted[i+dir]=tmp;sorted.forEach((a,j)=>a.order=j);}commit('Η σειρά των τομέων ενημερώθηκε');}
 
 document.addEventListener('click',event=>{
+  const settingsMenu=document.querySelector('.settings-popover[open]');
+  if(settingsMenu&&!settingsMenu.contains(event.target))settingsMenu.open=false;
   const b=event.target.closest('[data-action]');if(!b)return;
   const action=b.dataset.action,id=b.dataset.id;
   try{
@@ -179,7 +181,7 @@ document.addEventListener('click',event=>{
     if(action==='history')return showHistory(metricById(id));
     if(action==='purpose')return showPurposeForm();
     if(action==='gold'){const m=metricById(id);if(m){m.gold=!m.gold;if(m.gold)m.goldOrder=orderedGoldMetrics(workspace).length;else delete m.goldOrder;commit(m.gold?'Προστέθηκε στους χρυσούς στόχους':'Αφαιρέθηκε από χρυσούς στόχους');}return;}
-    if(action==='export'){exportWorkspace(workspace);return toast('Το JSON αντίγραφο δημιουργήθηκε.');}
+    if(action==='export'){const menu=document.querySelector('.settings-popover');if(menu)menu.open=false;exportWorkspace(workspace);return toast('Το JSON αντίγραφο δημιουργήθηκε.');}
     if(action==='load-demo'){if(workspace.areas.length&&!confirm('Να αντικατασταθούν οι τωρινοί τοπικοί δείκτες με ενδεικτικά δεδομένα;'))return;workspace=demoWorkspace();view='all';return commit('Φορτώθηκαν φανταστικά δεδομένα παραδείγματος.');}
     if(action==='reset'){if(!confirm('Να διαγραφούν ΟΛΑ τα δεδομένα αυτού του browser; Κάνε πρώτα εξαγωγή αν τα χρειάζεσαι.'))return;workspace={version:1,areas:[],metrics:[],purpose:{text:'',visible:true}};view='all';return commit('Καθαρίστηκαν τα τοπικά δεδομένα.');}
   }catch(e){toast(e.message||'Προέκυψε σφάλμα.',true);}
@@ -227,7 +229,7 @@ if('serviceWorker' in navigator && location.protocol !== 'file:'){
   });
   window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register('./sw.js?v=20261103-essential-v1',{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register('./sw.js?v=20261103-settings-v2',{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);
