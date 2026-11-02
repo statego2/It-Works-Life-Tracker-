@@ -1,5 +1,5 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,metricProgress,VALUE_TYPES} from './domain.js';
-import {exportWorkspace,loadWorkspace,saveWorkspace} from './storage.js';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,metricProgress,VALUE_TYPES} from './domain.js?v=20261102-compact-v2';
+import {exportWorkspace,loadWorkspace,saveWorkspace} from './storage.js?v=20261102-compact-v2';
 
 let workspace = loadWorkspace();
 let view = 'all';
@@ -85,7 +85,7 @@ function render(){
       <div class="sidebar-bottom"><span class="local-dot"></span><div><b>Local Preview</b><small>Χωρίς λογαριασμό ή cloud sync</small></div></div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><span class="preview-tag">ΠΡΩΤΟΤΥΠΟ</span><button class="top-icon" data-action="export" title="Εξαγωγή δεδομένων">⇩ <span>Backup</span></button></div></header>
+      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><span class="preview-tag" title="Έκδοση compact">COMPACT v0.2</span><button class="top-icon" data-action="export" title="Εξαγωγή δεδομένων">⇩ <span>Backup</span></button></div></header>
       <div class="content-wrap">
         <div class="page-heading"><div class="eyebrow">PERSONAL LIFE DASHBOARD</div><h1>${esc(title)}</h1><p>${selectedArea?'Οι δείκτες που έχεις επιλέξει για αυτόν τον τομέα.':view==='gold'?'Όσα έχεις ορίσει ως σημαντικότερες προσωπικές προτεραιότητες.':'Μια καθαρή εικόνα της σημερινής σου κατάστασης σε σχέση με τη ζωή που εσύ ορίζεις.'}</p></div>
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
@@ -212,5 +212,20 @@ document.addEventListener('submit',e=>{
 });
 render();
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  // A new service worker takes control without retaining the previous offline shell.
+  // Reload only once per tab when the controller actually changes.
+  let refreshed=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(refreshed)return;
+    refreshed=true;
+    window.location.reload();
+  });
+  window.addEventListener('load',async ()=>{
+    try {
+      const reg=await navigator.serviceWorker.register('./sw.js?v=20261102-compact-v2',{updateViaCache:'none'});
+      await reg.update();
+    } catch(error) {
+      console.warn('Offline shell update unavailable:',error);
+    }
+  });
 }
