@@ -1,4 +1,3 @@
-
 /** Pure product logic, independent of DOM, browser storage or any web framework. */
 export const VALUE_TYPES = ["number", "money", "percentage", "boolean", "frequency"];
 export const COMPARATORS = ["at_least", "at_most", "exact"];

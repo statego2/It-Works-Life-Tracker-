@@ -10,10 +10,6 @@
   "plugins": {
     "LocalNotifications": {
       "presentationOptions": ["banner", "sound", "list"]
-    },
-    "StatusBar": {
-      "overlaysWebView": true,
-      "style": "DARK"
     }
   }
 }

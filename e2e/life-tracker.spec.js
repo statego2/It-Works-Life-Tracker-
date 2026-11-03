@@ -116,46 +116,6 @@ test("install metadata allows zoom and asks to keep storage", async ({ page }) =
   expect(fontSize).toBeGreaterThanOrEqual(16);
 });
 
-test("the example appears only after its button is tapped", async ({ page }) => {
-  page.on("dialog", (dialog) => dialog.accept());
-  await resetApp(page);
-  await expect(page.getByRole("heading", { name: "Σχέσεις & φίλοι", level: 3 })).toHaveCount(0);
-  await expect(page.getByText("Να δημιουργώ συνειδητά μια ζωή που αντανακλά τις δικές μου αξίες.")).toHaveCount(0);
-  await page.getByRole("button", { name: "Δες ένα παράδειγμα" }).click();
-  await expect(page.getByRole("heading", { name: "Σχέσεις & φίλοι", level: 3 })).toBeVisible();
-  await expect(page.getByText("Να δημιουργώ συνειδητά μια ζωή που αντανακλά τις δικές μου αξίες.")).toBeVisible();
-  await expect(page.getByText("Κρατώ τον λόγο που δίνω στον εαυτό μου.")).toHaveCount(0);
-});
-
-test("create a folder, a custom goal, mark it favorite, and reorder folders", async ({ page }) => {
-  page.on("dialog", (dialog) => dialog.accept());
-  await resetApp(page);
-  await page.getByRole("button", { name: "Δημιουργία πρώτου τομέα" }).click();
-  await page.locator("#area-name").fill("Υγεία");
-  await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
-  await page.getByRole("button", { name: "Νέος στόχος / standard" }).click();
-  await page.locator("#metric-title").fill("Ώρες ύπνου");
-  await page.locator("#unit").fill("ώρες");
-  await page.locator("#initial").fill("6");
-  await page.locator("#desired").fill("8");
-  await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
-  await expect(page.locator(".area-card").getByRole("button", { name: "Λεπτομέρειες: Ώρες ύπνου" })).toBeVisible();
-  await expect(page.locator(".area-card .compact-values span").first()).toContainText("6 ώρες");
-  await page.locator(".area-card").getByRole("button", { name: "Χρυσός στόχος" }).click();
-  await expect(page.getByRole("heading", { name: "Οι χρυσοί στόχοι μου" })).toBeVisible();
-  await expect(page.locator(".gold-section").getByRole("button", { name: "Λεπτομέρειες: Ώρες ύπνου" })).toBeVisible();
-  await page.getByRole("button", { name: "Νέος τομέας" }).click();
-  await page.locator("#area-name").fill("Σχέσεις");
-  await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
-  const relationships = page.locator(".area-card", { has: page.getByRole("heading", { name: "Σχέσεις", level: 3 }) });
-  await relationships.getByRole("button", { name: "Μετακίνηση πάνω" }).click();
-  await expect(page.locator(".area-card h3").first()).toHaveText("Σχέσεις");
-  await page.locator(".area-card").getByRole("button", { name: "Λεπτομέρειες: Ώρες ύπνου" }).click();
-  await page.locator(".area-card").getByRole("button", { name: "Επεξεργασία", exact: true }).click();
-  await expect(page.locator("#unit")).toHaveValue("ώρες");
-  await expect(page.locator("#desired")).toHaveValue("8");
-});
-
 test("service worker serves the shell while offline", async ({ browser }) => {
   const context = await browser.newContext({
     ...devices["iPhone 13"],

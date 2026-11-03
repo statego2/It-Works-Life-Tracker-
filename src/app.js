@@ -1,10 +1,10 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-folders-v16';
-import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-folders-v16';
-import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-folders-v16';
-import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-folders-v16';
-import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-folders-v16';
-import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-folders-v16';
-import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-folders-v16';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-capacitor-v9';
+import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-capacitor-v9';
+import {parseBackup} from './backup.js?v=20261103-capacitor-v9';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-capacitor-v9';
+import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-capacitor-v9';
+import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-capacitor-v9';
+import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-capacitor-v9';
 
 await initStorage();
 let workspace = loadWorkspace();
@@ -39,7 +39,6 @@ function publishWidget(state){
 }
 async function commit(message='Αποθηκεύτηκε σε αυτή τη συσκευή') {
   normalizeMetricOrders(workspace);
-  normalizeWorkspace(workspace);
   const result=await Promise.resolve(commitWorkspace(workspace, lastSaved, saveWorkspace));
   workspace=result.workspace;
   saveError=result.ok?'':result.message;
@@ -137,24 +136,26 @@ function render(){
   const title=selectedArea?selectedArea.name:view==='gold'?'Χρυσοί στόχοι':view==='notes'?'Σημειώσεις':'Η συνολική μου εικόνα';
   root.innerHTML=`<div class="shell">
     <aside class="sidebar">
+      <div class="brand"><div class="brand-icon">✦</div><div><b>it works<span>.</span></b><small>LIFE TRACKER</small></div></div>
       <div class="nav-section-label">Ο ΧΩΡΟΣ ΜΟΥ</div>
       <nav aria-label="Τομείς ζωής"><button class="nav-item ${view==='all'?'active':''}" data-action="navigate" data-view="all"><span>◫</span> Συνολική εικόνα</button><button class="nav-item ${view==='gold'?'active':''}" data-action="navigate" data-view="gold"><span class="gold-icon">★</span> Χρυσοί στόχοι</button></nav>
       <div class="nav-divider"></div><button class="nav-item ${view==='notes'?'active':''}" data-action="navigate" data-view="notes">✎ Σημειώσεις</button><div class="side-heading"><span>ΟΙ ΤΟΜΕΙΣ ΜΟΥ</span><button data-action="add-area" class="side-add" title="Νέος φάκελος" aria-label="Νέος φάκελος">＋</button></div>
       <nav aria-label="Προσωπικοί φάκελοι">${areas.map(a=>`<button class="nav-item ${view===a.id?'active':''}" data-action="navigate" data-view="${esc(a.id)}"><span class="area-dot" style="background:${escapeAttrColor(a.color)}"></span><span class="nav-name">${esc(a.name)}</span></button>`).join('')}${areas.length?'':'<div class="sidebar-empty">Ξεκίνα προσθέτοντας έναν τομέα.</div>'}</nav>
+      <div class="sidebar-bottom"><span class="local-dot"></span><div><b>Local Preview</b><small>Χωρίς λογαριασμό ή cloud sync</small></div></div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button><button type="button" data-action="reminders">Υπενθυμίσεις</button><button type="button" data-action="reset">Εκκαθάριση</button></div></details></div></header>
+      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button><button type="button" data-action="reminders">Υπενθυμίσεις</button></div></details></div></header>
       <div class="content-wrap">
         <div class="page-heading"><h1>${esc(title)}</h1></div>${view==='all'?renderVision():''}${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}${saveError?`<div class="save-warning" role="alert">${esc(saveError)}</div>`:''}
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
         `:''}
         ${showGold?`<section class="gold-section"><div class="section-heading"><div><h2>Οι χρυσοί στόχοι μου</h2></div><button class="text-btn" data-action="navigate" data-view="gold">Προβολή όλων →</button></div><div class="gold-grid">${gold.slice(0,3).map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div></section>`:''}
         ${view==='notes'?renderNotes():''}
-        ${view==='gold'?`${gold.length?`<div class="gold-grid">${gold.map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div>`:'<section class="empty-panel"><h2>Δεν έχεις επιλέξει χρυσούς στόχους</h2><button class="primary-btn" data-action="navigate" data-view="all">Πίσω στους τομείς</button></section>'}`:''}
+        ${view==='gold'?`${gold.length?`<div class="gold-grid">${gold.map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div>`:'<section class="empty-panel"><span class="empty-art">☆</span><h2>Δεν έχεις επιλέξει χρυσούς στόχους</h2><p>Πάτησε το αστέρι σε έναν δείκτη για να εμφανίζεται εδώ.</p><button class="primary-btn" data-action="navigate" data-view="all">Πίσω στους τομείς</button></section>'}`:''}
         ${!['gold','notes'].includes(view)?`<section class="areas-section"><div class="section-heading"><div><h2>${selectedArea?'Standards & στόχοι':'Οι τομείς της ζωής μου'}</h2></div><button class="outline-btn" data-action="add-area"><span>＋</span> Νέος τομέας</button></div>
         ${visibleAreas.length?`<div class="areas-stack">${visibleAreas.map(renderArea).join('')}</div>`:`<section class="empty-panel"><span class="empty-art">▦</span><h2>Η ζωή σου, οι δικοί σου τομείς</h2><p>Δημιούργησε τους φακέλους που θέλεις. Μέσα σε κάθε έναν θα βάζεις το δικό σου standard και πού βρίσκεσαι σήμερα.</p><div class="empty-actions"><button class="primary-btn" data-action="add-area">＋ Δημιουργία πρώτου τομέα</button><button class="outline-btn" data-action="load-demo">Δες ένα παράδειγμα</button></div></section>`}</section>`:''}
         
-        <footer class="footnote"><button data-action="export">Εξαγωγή JSON</button> <button data-action="reset">Εκκαθάριση</button></footer>
+        <footer class="footnote"><b>Προσοχή:</b> αυτή είναι τοπική δοκιμαστική έκδοση. Τα δεδομένα μένουν μόνο στον συγκεκριμένο browser, χωρίς σύνδεση, κρυπτογράφηση λογαριασμού ή συγχρονισμό. Απόφυγε ευαίσθητα προσωπικά στοιχεία προς το παρόν. <button data-action="export">Εξαγωγή JSON</button> <button data-action="reset">Εκκαθάριση</button></footer>
       </div>
     </main>
   </div>`;
@@ -167,7 +168,7 @@ function showDialog(inner) {
   const first=dialog.querySelector('input:not([type=hidden]),textarea');if(first)first.focus();
 }
 function dialogFrame(title,body,button='Αποθήκευση'){
-  return `<div class="dialog-head"><div><h2>${title}</h2></div><button type="button" data-action="close" class="icon-btn" aria-label="Κλείσιμο">✕</button></div>${body}<div class="dialog-actions"><button type="button" data-action="close" class="outline-btn">Ακύρωση</button><button class="primary-btn" type="submit" form="entry-form">${button}</button></div>`;
+  return `<div class="dialog-head"><div><span class="eyebrow">IT WORKS</span><h2>${title}</h2></div><button type="button" data-action="close" class="icon-btn" aria-label="Κλείσιμο">✕</button></div>${body}<div class="dialog-actions"><button type="button" data-action="close" class="outline-btn">Ακύρωση</button><button class="primary-btn" type="submit" form="entry-form">${button}</button></div>`;
 }
 function showAreaForm(area=null){
   showDialog(dialogFrame(area?'Επεξεργασία τομέα':'Νέος τομέας',`<form id="entry-form" data-form="area" data-id="${esc(area?.id||'')}"><label for="area-name">Όνομα φακέλου</label><input id="area-name" name="name" maxlength="80" required value="${esc(area?.name||'')}" placeholder="π.χ. Εκπαίδευση, Υγεία, Σχέσεις"/></form>${area?`<button class="danger-link" data-action="delete-area" data-id="${esc(area.id)}" type="button">Διαγραφή φακέλου και δεικτών…</button>`:''}`,area?'Αποθήκευση':'Προσθήκη'));
@@ -328,32 +329,8 @@ document.addEventListener('submit',async e=>{
     document.getElementById('active-dialog')?.close();await commit();
   }catch(error){toast(error.message||'Έλεγξε τις τιμές που συμπλήρωσες.',true);}
 });
-if(!(await applyPreviewFixture())) render();
+render();
 requestPersistentStorage();
-async function applyPreviewFixture(){
-  try{
-    const response=await fetch(new URL('../preview.json', import.meta.url),{cache:'no-store'});
-    if(!response.ok)return false;
-    const spec=await response.json();
-    if(!spec?.screen)return false;
-    workspace=demoWorkspace();
-    normalizeWorkspace(workspace);
-    normalizeMetricOrders(workspace);
-    lastSaved=structuredClone(workspace);
-    const area=orderedAreas(workspace)[0];
-    if((spec.screen==='folder'||spec.screen==='detail')&&area)view=area.id;
-    if(spec.screen==='detail'&&area){
-      const metric=metricsInArea(workspace,area.id)[0];
-      if(metric)metric.unit='άνθρωποι';
-    }
-    render();
-    if(spec.screen==='detail'){
-      const metric=metricsInArea(workspace,view)[0];
-      if(metric)showMetricForm(metric.areaId,metric);
-    }
-    return true;
-  }catch{return false;}
-}
 async function requestPersistentStorage(){
   try{
     const storage=navigator.storage;
@@ -373,14 +350,12 @@ if('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capa
     refreshed=true;
     window.location.reload();
   });
-  const registerShell=async ()=>{
+  window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-folders-v16', import.meta.url),{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-capacitor-v9', import.meta.url),{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);
     }
-  };
-  if(document.readyState==='complete') registerShell();
-  else window.addEventListener('load',registerShell);
+  });
 }
