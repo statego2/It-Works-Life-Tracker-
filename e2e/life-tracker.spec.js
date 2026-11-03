@@ -102,7 +102,7 @@ test("install metadata allows zoom and asks to keep storage", async ({ page }) =
   expect(viewport).not.toContain("maximum-scale");
   expect(viewport).toContain("viewport-fit=cover");
   await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
-  await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute("content", "default");
+  await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute("content", "black-translucent");
   await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "It Works");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "./icons/apple-touch-icon.png");
   const manifest = await page.evaluate(async () => (await (await fetch("./manifest.webmanifest")).json()));

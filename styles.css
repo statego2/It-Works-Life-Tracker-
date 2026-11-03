@@ -92,3 +92,32 @@ body{padding-left:var(--safe-left);padding-right:var(--safe-right)}
   .footnote{padding-bottom:calc(65px + var(--safe-bottom))}
   #toast{left:calc(12px + var(--safe-left));right:calc(12px + var(--safe-right));bottom:calc(12px + var(--safe-bottom));max-width:none}
 }
+
+/* Appearance only: black ground, blue accent, gold stars. Layout is unchanged. */
+:root{color-scheme:dark;--accent:#3d8dff;--line:#243044;--muted:#8b95a6;--shadow:0 12px 32px rgba(0,0,0,.4);background:#000;color:#f4f7fb}
+html,body{background:#000;color:#f4f7fb}
+.sidebar,.topbar,.area-card,.metric-card,.compact-card,.note-card,.app-dialog,.settings-panel,.empty-panel,.stat,.gold-grid .metric-card{background:#0c1016;color:#f4f7fb;border-color:#243044}
+.topbar{background:#000000e6;border-bottom-color:#1a2838}
+.nav-item{color:#c5ceda}
+.nav-item.active{background:#13283f;color:#9ecbff}
+.nav-item:hover:not(.active){background:#101820}
+.brand b,.brand b span,.page-heading h1,.area-heading h3,.section-heading h2,.dialog-head h2{color:#f7fbff}
+.brand-icon{background:linear-gradient(135deg,#8fd4ff,#1d6dff);box-shadow:0 0 16px rgba(50,140,255,.45)}
+.primary-btn,.primary-btn:hover,.small-primary,.small-primary:hover{background:linear-gradient(180deg,#7ec8ff,#1d6dff);border-color:transparent;color:#fff;box-shadow:0 0 16px rgba(40,130,255,.4)}
+.outline-btn{background:#121820;color:#d7e8ff;border-color:#2a3c52}
+.outline-btn:hover{background:#182433}
+.text-btn,.area-add,.side-add,.footnote button{color:#7eb6ff}
+.gold-btn.selected,.gold-icon,.gold-eyebrow{color:#e8c56a}
+.local-dot{background:#e8c56a}
+.purpose-card{background:linear-gradient(160deg,#16345c,#0a1422);box-shadow:0 0 28px rgba(40,120,255,.22)}
+.purpose-placeholder{background:#101820;color:#b9d7ff;border-color:#2a4666}
+.compact-card,.area-card{box-shadow:0 0 0 1px rgba(80,150,255,.16),0 14px 32px rgba(0,0,0,.35)}
+.area-symbol{background:color-mix(in srgb,var(--area-color) 28%,#0c1016)}
+.compact-track{background:#172232}
+.compact-track>span{background:linear-gradient(90deg,#1d6dff,#8fd4ff);box-shadow:0 0 10px rgba(80,170,255,.55)}
+.compact-values small,.compact-state,.compact-percent,.compact-meta,.footnote,.form-hint,.area-empty{color:#8b95a6}
+input:not([type=checkbox]),select,textarea{background:#080c12;color:#f4f7fb;border-color:#2a3c52}
+.app-dialog::backdrop{background:#000000aa}
+.settings-panel button{color:#e7eef8}
+.settings-panel button:hover,.settings-panel button:focus-visible{background:#152033}
+.nav-divider,.area-head,.area-footer,.compact-details{border-color:#243044}
