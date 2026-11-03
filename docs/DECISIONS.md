@@ -59,6 +59,11 @@ Maintained to distinguish **confirmed product requirements**, **reversible techn
 - Starred goals for the widget are a small snapshot in the App Group `group.com.statego2.itworks`. Current is the left value and the target is the right value. The full workspace is not placed in the App Group.
 - Reminders are scheduled on the device with Capacitor Local Notifications. There is no server. The website stores the reminder list and does not schedule a notification.
 
+## ADR-003 — Three dashboard proposals, not a final layout (2026-11-03)
+**Status:** Proposal for comparison. P-010 still stands: the final visual design is not approved.
+
+The owner asked to compare looks before choosing one. The app can switch among three directions, stored on the workspace as `appearance.direction`: `sanctuary` (closest to a dark personal note), `health` (grouped iOS cards, light and dark), and `editorial` (serif, gold rule). Optional affirmations and four identity sections (ideal, life's work, mission, personal life) are user-written. They are empty until the user or the fictional demo fills them. None of the owner's private note text or photos is stored in this repository.
+
 **Stack changes** may be made by implementers if justified with maintenance, security, deployment and portability trade-offs in an Architecture Decision Record (ADR).
 
 ## Open questions (defer without blocking foundation)

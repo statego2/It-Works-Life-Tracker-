@@ -116,6 +116,21 @@ test("install metadata allows zoom and asks to keep storage", async ({ page }) =
   expect(fontSize).toBeGreaterThanOrEqual(16);
 });
 
+test("the three dashboard directions stay on this device", async ({ page }) => {
+  page.on("dialog", (dialog) => dialog.accept());
+  await resetApp(page);
+  await page.getByRole("button", { name: "Δες ένα παράδειγμα" }).click();
+  await expect(page.getByText("Κρατώ τον λόγο που δίνω στον εαυτό μου.")).toBeVisible();
+  await page.getByRole("button", { name: "Υγεία", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("health");
+  await page.getByRole("button", { name: "Περιοδικό", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("editorial");
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("editorial");
+  await expect(page.locator(".compact-values").first().locator("span").first()).toContainText("ΤΩΡΑ");
+  await expect(page.locator(".compact-values").first().locator("span").nth(1)).toContainText("STANDARD");
+});
+
 test("service worker serves the shell while offline", async ({ browser }) => {
   const context = await browser.newContext({
     ...devices["iPhone 13"],

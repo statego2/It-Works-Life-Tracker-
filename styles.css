@@ -92,3 +92,81 @@ body{padding-left:var(--safe-left);padding-right:var(--safe-right)}
   .footnote{padding-bottom:calc(65px + var(--safe-bottom))}
   #toast{left:calc(12px + var(--safe-left));right:calc(12px + var(--safe-right));bottom:calc(12px + var(--safe-bottom));max-width:none}
 }
+
+/* Fast update: the left value opens the current-state form. The right value stays the target. */
+.value-hit{width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:inherit;padding:0}
+.current-hit .value-hit{text-align:left}
+.appearance-switch{display:flex;gap:6px;overflow-x:auto;margin:0 0 16px;scrollbar-width:none}
+.appearance-switch button{flex:0 0 auto;border:1px solid var(--line,#e8eaf2);background:transparent;color:inherit;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:750}
+.appearance-switch button[aria-pressed="true"]{background:#6259c8;color:#fff;border-color:transparent}
+.vision-hero{position:relative;margin:0 0 18px}
+.vision-fallback{height:230px;border-radius:18px;background:radial-gradient(ellipse at 72% 38%,#f2c56a 0%,transparent 36%),linear-gradient(180deg,#24365c 0%,#c56a32 46%,#1a120e 100%)}
+.vision-hero .vision-photo{width:100%;height:230px;object-fit:cover;border-radius:18px;max-height:none}
+.emblem,.emblem-photo{width:148px;height:148px;border-radius:50%;margin:-54px auto 8px;display:block;position:relative;object-fit:cover;border:1px solid #ffffff40}
+.emblem{background:radial-gradient(circle at 50% 42%,#f4f0e8 0%,#b7b1a6 46%,#3a3a40 78%);box-shadow:0 16px 36px #00000055}
+.affirmation-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.affirmation-list li{display:flex;gap:8px;justify-content:center;text-align:center}
+.affirmation-list span{min-width:1.4em}
+.identity-board{position:relative;border:1px solid var(--line,#e8eaf2);border-radius:22px;padding:22px 18px 8px;margin:8px 0 22px}
+.identity-edit{position:absolute;top:10px;right:10px;border:0;background:transparent;color:inherit;font-size:18px}
+.identity-section{text-align:center;padding:8px 8px 16px}
+.identity-eyebrow{font-size:11px;letter-spacing:.16em;font-weight:750;margin:0 0 8px}
+.identity-section h3{font-family:Georgia,"Iowan Old Style",Palatino,serif;font-weight:500;font-size:28px;letter-spacing:-.03em;margin:0 0 8px}
+.identity-section p{margin:0 auto;max-width:28em;line-height:1.45}
+.identity-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.chip{border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700}
+.identity-fields{border:0;margin:0 0 16px;padding:0}
+.identity-fields legend{font-size:12px;font-weight:750;margin-bottom:8px}
+
+[data-scheme="dark"]{color-scheme:dark;background:#07080c;color:#f4efe6}
+[data-scheme="dark"] body{background:#07080c;color:#f4efe6}
+[data-scheme="dark"] .sidebar,[data-scheme="dark"] .topbar,[data-scheme="dark"] .area-card,[data-scheme="dark"] .metric-card,[data-scheme="dark"] .note-card,[data-scheme="dark"] .app-dialog,[data-scheme="dark"] .settings-panel{background:#14151b;color:#f4efe6;border-color:#2c2e38}
+[data-scheme="dark"] .nav-item{color:#c9c3b6}
+[data-scheme="dark"] .nav-item.active{background:#24222c;color:#f4efe6}
+[data-scheme="dark"] .compact-values small,[data-scheme="dark"] .compact-state,[data-scheme="dark"] .compact-percent,[data-scheme="dark"] .footnote,[data-scheme="dark"] .form-hint{color:#b7b1a4}
+[data-scheme="dark"] .outline-btn,[data-scheme="dark"] .small-primary{background:#221f2b;color:#f4efe6;border-color:#3a3648}
+[data-scheme="dark"] input:not([type=checkbox]),[data-scheme="dark"] select,[data-scheme="dark"] textarea{background:#0e0f14;color:#f4efe6;border-color:#343646}
+[data-scheme="dark"] .purpose-placeholder,[data-scheme="dark"] .empty-panel{background:#14151b;color:#f4efe6;border-color:#343646}
+[data-scheme="dark"] .compact-track{background:#2a2c36}
+[data-scheme="dark"] .compact-track span{background:#d7c4a3}
+
+[data-direction="sanctuary"] .page-heading,[data-direction="sanctuary"] .story-stack{text-align:center}
+[data-direction="sanctuary"] .page-heading h1{font-family:Georgia,"Iowan Old Style",Palatino,serif;font-weight:500}
+[data-direction="sanctuary"] .purpose-card,[data-direction="sanctuary"] .purpose-placeholder{text-align:left}
+[data-direction="sanctuary"] .identity-board{background:#121318;color:#f6f1e7;border-color:#3a342c}
+[data-direction="sanctuary"] .identity-eyebrow{color:#d7c4a3}
+[data-direction="sanctuary"] .chip{background:#2a241c;color:#f6f1e7}
+[data-direction="sanctuary"] .affirmation-list b{font-family:Georgia,"Iowan Old Style",Palatino,serif;font-weight:500;font-size:18px;border-bottom:1px solid #d7c4a355}
+[data-direction="sanctuary"][data-scheme="light"]{background:#f7f1e7;color:#24180f}
+[data-direction="sanctuary"][data-scheme="light"] body,[data-direction="sanctuary"][data-scheme="light"] .sidebar,[data-direction="sanctuary"][data-scheme="light"] .topbar,[data-direction="sanctuary"][data-scheme="light"] .area-card,[data-direction="sanctuary"][data-scheme="light"] .metric-card{background:#f7f1e7;color:#24180f}
+[data-direction="sanctuary"][data-scheme="light"] .identity-board{background:#fffaf3;color:#24180f}
+
+[data-direction="health"]{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
+[data-direction="health"] .vision-hero,[data-direction="health"] .emblem{display:none}
+[data-direction="health"] .page-heading h1{font-weight:700;letter-spacing:-.04em}
+[data-direction="health"] .identity-board,[data-direction="health"] .affirmation-block,[data-direction="health"] .area-card{border:0;box-shadow:none;border-radius:14px}
+[data-direction="health"] .identity-section{text-align:left}
+[data-direction="health"] .identity-section h3{font-family:inherit;font-weight:650;font-size:20px}
+[data-direction="health"] .identity-eyebrow{letter-spacing:.04em;font-size:12px}
+[data-direction="health"] .affirmation-list li{justify-content:flex-start;text-align:left}
+[data-direction="health"] .chip{background:#2c2c2e;color:#fff}
+[data-direction="health"][data-scheme="dark"] body{background:#000}
+[data-direction="health"][data-scheme="dark"] .sidebar,[data-direction="health"][data-scheme="dark"] .topbar{background:#000;border-color:#2c2c2e}
+[data-direction="health"][data-scheme="dark"] .metric-card,[data-direction="health"][data-scheme="dark"] .identity-board,[data-direction="health"][data-scheme="dark"] .affirmation-block,[data-direction="health"][data-scheme="dark"] .area-card{background:#1c1c1e}
+[data-direction="health"][data-scheme="light"] body,[data-direction="health"][data-scheme="light"] .sidebar,[data-direction="health"][data-scheme="light"] .topbar{background:#f2f2f7;color:#1c1c1e}
+[data-direction="health"][data-scheme="light"] .metric-card,[data-direction="health"][data-scheme="light"] .identity-board,[data-direction="health"][data-scheme="light"] .affirmation-block,[data-direction="health"][data-scheme="light"] .area-card,[data-direction="health"][data-scheme="light"] .purpose-card{background:#fff;color:#1c1c1e;box-shadow:none}
+[data-direction="health"][data-scheme="light"] .chip{background:#e5e5ea;color:#1c1c1e}
+[data-direction="health"][data-scheme="light"] .nav-item.active{background:#e5e5ea;color:#1c1c1e}
+
+[data-direction="editorial"] .page-heading h1{font-family:Georgia,"Iowan Old Style",Palatino,serif;font-weight:500;font-size:40px;line-height:1.05}
+[data-direction="editorial"] .story-stack{border-left:2px solid #c6a15b;padding-left:14px}
+[data-direction="editorial"] .affirmation-list{gap:14px}
+[data-direction="editorial"] .affirmation-list li{justify-content:flex-start;text-align:left}
+[data-direction="editorial"] .affirmation-list b{font-family:Georgia,"Iowan Old Style",Palatino,serif;font-weight:500;font-size:22px;line-height:1.25}
+[data-direction="editorial"] .identity-board{border:0;border-radius:0;padding:0}
+[data-direction="editorial"] .identity-section{text-align:left;border-top:1px solid #c6a15b66;padding-top:16px}
+[data-direction="editorial"] .identity-eyebrow{color:#c6a15b}
+[data-direction="editorial"] .vision-fallback,[data-direction="editorial"] .vision-hero .vision-photo{height:280px;border-radius:2px}
+[data-direction="editorial"] .emblem,[data-direction="editorial"] .emblem-photo{margin-left:0;border-radius:2px;width:92px;height:92px}
+[data-direction="editorial"][data-scheme="light"]{background:#f4efe6;color:#1a140f}
+[data-direction="editorial"][data-scheme="light"] body,[data-direction="editorial"][data-scheme="light"] .sidebar,[data-direction="editorial"][data-scheme="light"] .topbar,[data-direction="editorial"][data-scheme="light"] .metric-card,[data-direction="editorial"][data-scheme="light"] .area-card{background:#f4efe6;color:#1a140f}

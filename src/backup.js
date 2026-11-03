@@ -1,3 +1,5 @@
+import {DIRECTIONS,IDENTITY_KEYS,SCHEMES,normalizeAppearance} from "./appearance.js";
+
 /**
  * Portable backup validation (browser + future native clients).
  * Supports the legacy v1 flat JSON exports and the new explicit envelope.
@@ -32,6 +34,7 @@ function validateImage(image){
 export function normalizeWorkspace(state){
   if(!Array.isArray(state.notes))state.notes=[];
   if(!object(state.vision))state.vision={visible:false,mode:"fixed",rotationHours:3,images:[]};
+  normalizeAppearance(state);
   return state;
 }
 export function validateWorkspace(input){
@@ -68,6 +71,18 @@ export function validateWorkspace(input){
   check(state.notes.length<=100,"προσωπικές σημειώσεις");
   for(const note of state.notes)check(object(note)&&string(note.id,100,1)&&string(note.title,120)&&string(note.body,4000)&&typeof note.pinned==="boolean"&&date(note.createdAt)&&date(note.updatedAt),"σημείωση");
   distinct(state.notes.map(n=>n.id),"σημειώσεων");
+  check(object(state.appearance)&&DIRECTIONS.includes(state.appearance.direction)&&SCHEMES.includes(state.appearance.scheme)&&typeof state.appearance.showAffirmations==="boolean"&&typeof state.appearance.showIdentity==="boolean","εμφάνιση");
+  check(Array.isArray(state.affirmations)&&state.affirmations.length<=12,"δηλώσεις");
+  for(const item of state.affirmations)check(object(item)&&string(item.id,100,1)&&string(item.text,180,1)&&integer(item.order),"δήλωση");
+  distinct(state.affirmations.map(item=>item.id),"δηλώσεων");
+  check(object(state.identity)&&typeof state.identity.visible==="boolean"&&Array.isArray(state.identity.sections)&&state.identity.sections.length===IDENTITY_KEYS.length,"ταυτότητα");
+  state.identity.sections.forEach((section,index)=>{
+    check(object(section)&&section.key===IDENTITY_KEYS[index]&&string(section.id,100,1)&&string(section.eyebrow,80,1)&&string(section.title,120)&&string(section.body,400)&&section.order===index&&typeof section.visible==="boolean","ενότητα ταυτότητας");
+    check(Array.isArray(section.chips)&&section.chips.length<=6,"ετικέτες ενότητας");
+    for(const chip of section.chips)check(object(chip)&&string(chip.id,100,1)&&string(chip.label,24,1),"ετικέτα");
+    distinct(section.chips.map(chip=>chip.id),"ετικετών");
+  });
+  distinct(state.identity.sections.map(section=>section.id),"ενοτήτων");
   check(typeof state.vision.visible==="boolean"&&["fixed","rotate"].includes(state.vision.mode)&&[1,3,6,12,24].includes(state.vision.rotationHours),"ρυθμίσεις Vision Board");
   check(Array.isArray(state.vision.images)&&state.vision.images.length<=8,"πλήθος φωτογραφιών");
   state.vision.images.forEach(validateImage);
