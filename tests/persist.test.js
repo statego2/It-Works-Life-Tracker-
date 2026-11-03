@@ -41,6 +41,18 @@ test("successful save keeps the attempted workspace", () => {
   assert.equal(attempted.areas[0].name, "Κράτησε αυτό");
 });
 
+test("a native save promise that fails rolls back the same way", async () => {
+  const saved = demoWorkspace();
+  const attempted = structuredClone(saved);
+  attempted.areas[0].name = "Δεν έμεινε";
+  const result = await commitWorkspace(attempted, saved, async () => false);
+  assert.equal(result.ok, false);
+  assert.equal(result.workspace.areas[0].name, saved.areas[0].name);
+  const kept = await commitWorkspace(attempted, saved, async () => true);
+  assert.equal(kept.ok, true);
+  assert.equal(kept.workspace.areas[0].name, "Δεν έμεινε");
+});
+
 test("quota failure keeps the previously stored workspace", () => {
   const store = new Map();
   let fail = false;

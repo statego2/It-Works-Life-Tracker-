@@ -1,9 +1,12 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-iphone-v8';
-import {exportWorkspace,importWorkspace,isStorageBlocked,loadWorkspace,saveWorkspace} from './storage.js?v=20261103-iphone-v8';
-import {parseBackup} from './backup.js?v=20261103-iphone-v8';
-import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-iphone-v8';
-import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-iphone-v8';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-capacitor-v9';
+import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-capacitor-v9';
+import {parseBackup} from './backup.js?v=20261103-capacitor-v9';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-capacitor-v9';
+import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-capacitor-v9';
+import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-capacitor-v9';
+import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-capacitor-v9';
 
+await initStorage();
 let workspace = loadWorkspace();
 workspace.notes ??=[];
 workspace.vision ??={visible:false,mode:'fixed',rotationHours:3,images:[]};
@@ -11,6 +14,7 @@ let view = 'all';
 let ordering = false;
 normalizeMetricOrders(workspace);
 let lastSaved = structuredClone(workspace);
+let reminders = sanitizeReminders(loadReminders());
 let saveError = '';
 let toastTimer;
 const root = document.getElementById('root');
@@ -27,15 +31,37 @@ function toast(message, error=false) {
   el.setAttribute('aria-live', error?'assertive':'polite');
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='', error?8000:4500);
 }
-function commit(message='Αποθηκεύτηκε σε αυτή τη συσκευή') {
+function publishWidget(state){
+  const cap=window.Capacitor;
+  if(!cap?.isNativePlatform?.()||typeof cap.nativePromise!=='function') return;
+  const json=JSON.stringify(goldWidgetSnapshot(state));
+  cap.nativePromise('WidgetBridge','setSnapshot',{json}).catch(error=>console.warn('It Works: widget snapshot was not saved',error));
+}
+async function commit(message='Αποθηκεύτηκε σε αυτή τη συσκευή') {
   normalizeMetricOrders(workspace);
-  const result=commitWorkspace(workspace, lastSaved, saveWorkspace);
+  const result=await Promise.resolve(commitWorkspace(workspace, lastSaved, saveWorkspace));
   workspace=result.workspace;
   saveError=result.ok?'':result.message;
-  if(result.ok) lastSaved=structuredClone(workspace);
+  if(result.ok){lastSaved=structuredClone(workspace);publishWidget(workspace);}
   render();
   toast(result.ok?message:(result.message||SAVE_ROLLBACK_MESSAGE), !result.ok);
   return result.ok;
+}
+function clock(reminder){return `${String(reminder.hour).padStart(2,'0')}:${String(reminder.minute).padStart(2,'0')}`;}
+async function persistReminders(next,message){
+  const saved=await Promise.resolve(saveReminders(next));
+  if(!saved){toast(SAVE_ROLLBACK_MESSAGE,true);return;}
+  reminders=next;
+  const outcome=await applyReminderSchedule(reminders,window.Capacitor);
+  if(outcome.denied) toast('Η άδεια για ειδοποιήσεις δεν δόθηκε. Η υπενθύμιση αποθηκεύτηκε.',true);
+  else if(!outcome.scheduled) toast(message||'Αποθηκεύτηκε. Η ειδοποίηση χτυπάει μόνο στην εφαρμογή iPhone.');
+  else toast(message||'Η υπενθύμιση ορίστηκε σε αυτή τη συσκευή.');
+  showReminderForm();
+}
+function showReminderForm(){
+  const native=canScheduleNatively(window.Capacitor);
+  const rows=reminders.map(r=>`<li><b>${esc(clock(r))} · ${esc(r.text)}</b><button type="button" class="danger-link" data-action="delete-reminder" data-id="${esc(r.id)}">Αφαίρεση</button></li>`).join('');
+  showDialog(dialogFrame('Υπενθυμίσεις',`<form id="entry-form" data-form="reminder"><p class="form-hint">${native?'Διάλεξε εσύ την ώρα. Η ειδοποίηση μένει σε αυτή τη συσκευή, χωρίς server.':'Στην ιστοσελίδα η υπενθύμιση αποθηκεύεται. Η ειδοποίηση χτυπάει μόνο στην εφαρμογή iPhone.'}</p><ul class="history-list">${rows||'<li>Καμία υπενθύμιση</li>'}</ul><div class="field"><label for="reminder-text">Κείμενο</label><input id="reminder-text" name="text" maxlength="140" required placeholder="π.χ. Κοίτα τους χρυσούς στόχους"/></div><div class="field"><label for="reminder-time">Ώρα</label><input id="reminder-time" name="time" type="time" required value="09:00"/></div></form>`,'Προσθήκη'));
 }
 function escapeAttrColor(color){return /^#[0-9a-fA-F]{6}$/.test(String(color))?color:'#7067cf';}
 function valueForInput(value){return !value?'':value.type==='boolean'?(value.value?'yes':'no'):String(value.amount);}
@@ -118,7 +144,7 @@ function render(){
       <div class="sidebar-bottom"><span class="local-dot"></span><div><b>Local Preview</b><small>Χωρίς λογαριασμό ή cloud sync</small></div></div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button></div></details></div></header>
+      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button><button type="button" data-action="reminders">Υπενθυμίσεις</button></div></details></div></header>
       <div class="content-wrap">
         <div class="page-heading"><h1>${esc(title)}</h1></div>${view==='all'?renderVision():''}${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}${saveError?`<div class="save-warning" role="alert">${esc(saveError)}</div>`:''}
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
@@ -181,9 +207,9 @@ function showMetricForm(areaId,metric=null){
 function showActualForm(m){const current=getCurrent(m)?.value;showDialog(dialogFrame('Ενημέρωση τωρινής κατάστασης',`<form id="entry-form" data-form="actual" data-id="${esc(m.id)}"><p class="form-desc">${esc(m.title)}</p><div class="field"><label for="current-input">Τωρινή κατάσταση</label>${valueInput(m.type,'current-input',current,true)}</div><p class="form-hint">Προστίθεται νέα καταγραφή στο ιστορικό. Οι παλιές τιμές δεν διαγράφονται.</p></form>`,'Καταγραφή'));}
 function showPurposeForm(){showDialog(dialogFrame('Ο προσωπικός μου σκοπός',`<form id="entry-form" data-form="purpose"><div class="field"><label for="purpose-text">Πώς θέλεις να ορίζεις τον σκοπό σου;</label><textarea name="text" id="purpose-text" rows="5" maxlength="1000" placeholder="Γράψε τον προσωπικό σου σκοπό...">${esc(workspace.purpose.text)}</textarea></div><label class="check-line"><input type="checkbox" name="visible" ${workspace.purpose.visible?'checked':''} /> Να εμφανίζεται στο dashboard</label></form>`));}
 function showHistory(m){const actual=[...m.observations].reverse().map(o=>`<li><b>${valueLabel(o.value,m)}</b><span>${dateLabel(o.observedAt)}</span></li>`).join('');const targets=[...m.targets].reverse().map(t=>`<li><b>${valueLabel(t.value,m)}</b><span>${dateLabel(t.effectiveAt)}</span></li>`).join('');showDialog(`<div class="dialog-head"><div><span class="eyebrow">ΙΣΤΟΡΙΚΟ</span><h2>${esc(m.title)}</h2></div><button type="button" data-action="close" class="icon-btn">✕</button></div><div class="history-grid"><div><h3>Καταγραφές τωρινής κατάστασης</h3><ul class="history-list">${actual||'<li>Καμία καταγραφή</li>'}</ul></div><div><h3>Αλλαγές standards / στόχων</h3><ul class="history-list">${targets||'<li>Κανένας στόχος</li>'}</ul></div></div><div class="dialog-actions"><button type="button" class="outline-btn" data-action="close">Κλείσιμο</button></div>`);}
-function repositionArea(id,dir){const sorted=orderedAreas(workspace),i=sorted.findIndex(a=>a.id===id),other=sorted[i+dir];if(i<0||!other)return; const x=sorted[i]; const original=x.order;x.order=other.order;other.order=original; if(x.order===other.order){sorted.forEach((a,j)=>a.order=j);const tmp=sorted[i];sorted[i]=sorted[i+dir];sorted[i+dir]=tmp;sorted.forEach((a,j)=>a.order=j);}commit('Η σειρά των τομέων ενημερώθηκε');}
+async function repositionArea(id,dir){const sorted=orderedAreas(workspace),i=sorted.findIndex(a=>a.id===id),other=sorted[i+dir];if(i<0||!other)return; const x=sorted[i]; const original=x.order;x.order=other.order;other.order=original; if(x.order===other.order){sorted.forEach((a,j)=>a.order=j);const tmp=sorted[i];sorted[i]=sorted[i+dir];sorted[i+dir]=tmp;sorted.forEach((a,j)=>a.order=j);}await commit('Η σειρά των τομέων ενημερώθηκε');}
 
-document.addEventListener('click',event=>{
+document.addEventListener('click',async event=>{
   const settingsMenu=document.querySelector('.settings-popover[open]');
   if(settingsMenu&&!settingsMenu.contains(event.target))settingsMenu.open=false;
   const b=event.target.closest('[data-action]');if(!b)return;
@@ -198,12 +224,12 @@ document.addEventListener('click',event=>{
       return;
     }
     if(action==='toggle-order'){ordering=!ordering;render();return;}
-    if(action==='move-metric'){if(moveMetric(workspace,id,Number(b.dataset.dir),b.dataset.collection))commit('Η σειρά ενημερώθηκε');return;}
+    if(action==='move-metric'){if(moveMetric(workspace,id,Number(b.dataset.dir),b.dataset.collection))await commit('Η σειρά ενημερώθηκε');return;}
     if(action==='close'){document.getElementById('active-dialog')?.close();return;}
     if(action==='navigate'){view=b.dataset.view;render();window.scrollTo({top:0,behavior:'smooth'});return;}
     if(action==='add-area')return showAreaForm();
-    if(action==='delete-area'){const a=areaById(id);if(!a||!confirm(`Να διαγραφεί ο φάκελος «${a.name}» και όλοι οι δείκτες του; Δεν μπορεί να αναιρεθεί.`))return;workspace.areas=workspace.areas.filter(x=>x.id!==id);workspace.metrics=workspace.metrics.filter(x=>x.areaId!==id);if(view===id)view='all';document.getElementById('active-dialog')?.close();return commit('Ο φάκελος διαγράφηκε.');}
-    if(action==='delete-metric'){const m=metricById(id);if(!m||!confirm(`Να διαγραφεί ο δείκτης «${m.title}» και το ιστορικό του; Δεν μπορεί να αναιρεθεί.`))return;workspace.metrics=workspace.metrics.filter(x=>x.id!==id);document.getElementById('active-dialog')?.close();return commit('Ο δείκτης διαγράφηκε.');}
+    if(action==='delete-area'){const a=areaById(id);if(!a||!confirm(`Να διαγραφεί ο φάκελος «${a.name}» και όλοι οι δείκτες του; Δεν μπορεί να αναιρεθεί.`))return;workspace.areas=workspace.areas.filter(x=>x.id!==id);workspace.metrics=workspace.metrics.filter(x=>x.areaId!==id);if(view===id)view='all';document.getElementById('active-dialog')?.close();return await commit('Ο φάκελος διαγράφηκε.');}
+    if(action==='delete-metric'){const m=metricById(id);if(!m||!confirm(`Να διαγραφεί ο δείκτης «${m.title}» και το ιστορικό του; Δεν μπορεί να αναιρεθεί.`))return;workspace.metrics=workspace.metrics.filter(x=>x.id!==id);document.getElementById('active-dialog')?.close();return await commit('Ο δείκτης διαγράφηκε.');}
     if(action==='edit-area')return showAreaForm(areaById(id));
     if(action==='move-area')return repositionArea(id,Number(b.dataset.dir));
     if(action==='add-metric')return showMetricForm(b.dataset.area);
@@ -213,14 +239,16 @@ document.addEventListener('click',event=>{
     if(action==='purpose')return showPurposeForm();
     if(action==='add-note')return showNoteForm();
     if(action==='vision')return showVisionForm();
-    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;workspace.vision.images=workspace.vision.images.filter(i=>i.id!==id);if(commit('Η φωτογραφία αφαιρέθηκε.'))showVisionForm();else document.getElementById('active-dialog')?.close();return;}
+    if(action==='reminders')return showReminderForm();
+    if(action==='delete-reminder'){if(!confirm('Να αφαιρεθεί η υπενθύμιση;'))return;await persistReminders(reminders.filter(r=>r.id!==id),'Η υπενθύμιση αφαιρέθηκε.');return;}
+    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;workspace.vision.images=workspace.vision.images.filter(i=>i.id!==id);if(await commit('Η φωτογραφία αφαιρέθηκε.'))showVisionForm();else document.getElementById('active-dialog')?.close();return;}
     if(action==='edit-note')return showNoteForm(noteById(id));
-    if(action==='delete-note'){if(!confirm('Να διαγραφεί η σημείωση;'))return;workspace.notes=workspace.notes.filter(n=>n.id!==id);document.getElementById('active-dialog')?.close();return commit();}
+    if(action==='delete-note'){if(!confirm('Να διαγραφεί η σημείωση;'))return;workspace.notes=workspace.notes.filter(n=>n.id!==id);document.getElementById('active-dialog')?.close();return await commit();}
     if(action==='import'){document.getElementById('backup-file')?.click();return;}
-    if(action==='gold'){const m=metricById(id);if(m){m.gold=!m.gold;if(m.gold)m.goldOrder=orderedGoldMetrics(workspace).length;else delete m.goldOrder;commit(m.gold?'Προστέθηκε στους χρυσούς στόχους':'Αφαιρέθηκε από χρυσούς στόχους');}return;}
+    if(action==='gold'){const m=metricById(id);if(m){m.gold=!m.gold;if(m.gold)m.goldOrder=orderedGoldMetrics(workspace).length;else delete m.goldOrder;await commit(m.gold?'Προστέθηκε στους χρυσούς στόχους':'Αφαιρέθηκε από χρυσούς στόχους');}return;}
     if(action==='export'){const menu=document.querySelector('.settings-popover');if(menu)menu.open=false;exportWorkspace(workspace);return toast('Το JSON αντίγραφο δημιουργήθηκε.');}
-    if(action==='load-demo'){if(workspace.areas.length&&!confirm('Να αντικατασταθούν οι τωρινοί τοπικοί δείκτες με ενδεικτικά δεδομένα;'))return;workspace=demoWorkspace();view='all';return commit('Φορτώθηκαν φανταστικά δεδομένα παραδείγματος.');}
-    if(action==='reset'){if(!confirm('Να διαγραφούν ΟΛΑ τα δεδομένα αυτού του browser; Κάνε πρώτα εξαγωγή αν τα χρειάζεσαι.'))return;workspace={version:1,areas:[],metrics:[],purpose:{text:'',visible:true}};view='all';return commit('Καθαρίστηκαν τα τοπικά δεδομένα.');}
+    if(action==='load-demo'){if(workspace.areas.length&&!confirm('Να αντικατασταθούν οι τωρινοί τοπικοί δείκτες με ενδεικτικά δεδομένα;'))return;workspace=demoWorkspace();view='all';return await commit('Φορτώθηκαν φανταστικά δεδομένα παραδείγματος.');}
+    if(action==='reset'){if(!confirm('Να διαγραφούν ΟΛΑ τα δεδομένα αυτού του browser; Κάνε πρώτα εξαγωγή αν τα χρειάζεσαι.'))return;workspace={version:1,areas:[],metrics:[],purpose:{text:'',visible:true}};view='all';return await commit('Καθαρίστηκαν τα τοπικά δεδομένα.');}
   }catch(e){toast(e.message||'Προέκυψε σφάλμα.',true);}
 });
 document.addEventListener('change',e=>{
@@ -239,7 +267,7 @@ document.addEventListener('change',async e=>{
   const text=await file.text();
   parseBackup(text);
   if(!confirm('Η επαναφορά θα αντικαταστήσει όλα τα τοπικά δεδομένα. Συνέχεια;'))return;
-  workspace=importWorkspace(text);
+  workspace=await Promise.resolve(importWorkspace(text));
   lastSaved=structuredClone(workspace);
   normalizeMetricOrders(workspace);
   view='all';commit('Το backup επαναφέρθηκε.');
@@ -253,7 +281,7 @@ document.addEventListener('change',async event=>{
   if(workspace.vision.images.length>=8)throw new Error('Μέχρι 8 φωτογραφίες.');
   const dataUrl=await compressVisionPhoto(file);
   workspace.vision.images=[...workspace.vision.images,{id:crypto.randomUUID(),title:cleanText(file.name.replace(/\.[^.]+$/,''),120),createdAt:new Date().toISOString(),dataUrl}];
-  if(commit('Η φωτογραφία προστέθηκε.'))showVisionForm();
+  if(await commit('Η φωτογραφία προστέθηκε.'))showVisionForm();
   else document.getElementById('active-dialog')?.close();
  }catch(error){toast(error.message||'Αποτυχία εισαγωγής εικόνας.',true);}
 });
@@ -262,7 +290,7 @@ setInterval(()=>{
  const updated=currentVisionImage(workspace.vision);
  if(image&&updated&&image.src!==updated.dataUrl)image.src=updated.dataUrl;
 },60_000);
-document.addEventListener('submit',e=>{
+document.addEventListener('submit',async e=>{
   const form=e.target;if(form.id!=='entry-form')return;e.preventDefault();
   const data=new FormData(form);const id=form.dataset.id;
   try{
@@ -289,8 +317,16 @@ document.addEventListener('submit',e=>{
       if(!next.title&&!next.body)throw new Error('Γράψε κείμενο ή τίτλο.');
       workspace.notes=old?workspace.notes.map(n=>n.id===id?next:n):[...workspace.notes,next];view='notes';
     }
+    else if(form.dataset.form==='reminder'){
+      if(reminders.length>=8) throw new Error('Μέχρι 8 υπενθυμίσεις.');
+      const [hour,minute]=String(data.get('time')||'').split(':').map(Number);
+      const next=reminderFromInput({id:crypto.randomUUID(),text:data.get('text'),hour,minute,notificationId:nextNotificationId(reminders)});
+      document.getElementById('active-dialog')?.close();
+      await persistReminders([...reminders,next]);
+      return;
+    }
     else return;
-    document.getElementById('active-dialog')?.close();commit();
+    document.getElementById('active-dialog')?.close();await commit();
   }catch(error){toast(error.message||'Έλεγξε τις τιμές που συμπλήρωσες.',true);}
 });
 render();
@@ -305,7 +341,7 @@ async function requestPersistentStorage(){
     console.warn('It Works: persistent storage was not granted.',error);
   }
 }
-if('serviceWorker' in navigator && location.protocol !== 'file:'){
+if('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capacitor?.isNativePlatform?.()){
   // A new service worker takes control without retaining the previous offline shell.
   // Reload only once per tab when the controller actually changes.
   let refreshed=false;
@@ -316,7 +352,7 @@ if('serviceWorker' in navigator && location.protocol !== 'file:'){
   });
   window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-iphone-v8', import.meta.url),{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-capacitor-v9', import.meta.url),{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);

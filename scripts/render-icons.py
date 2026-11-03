@@ -69,15 +69,38 @@ def write_png(path, size, content_scale):
     Path(path).write_bytes(png)
 
 
+def write_rgb_png(path, size, content_scale):
+    """Opaque RGB icon. The App Store rejects an alpha channel on the 1024 icon."""
+    raw = bytearray()
+    for y in range(size):
+        raw.append(0)
+        for x in range(size):
+            red, green, blue, _alpha = sample(x + 0.5, y + 0.5, size, content_scale)
+            raw.extend((red, green, blue))
+    def chunk(tag, data):
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+    ihdr = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
+    Path(path).write_bytes(png)
+
+
 def main():
-    root = Path(__file__).resolve().parents[1] / "icons"
+    root = Path(__file__).resolve().parents[1]
+    icons = root / "icons"
     # Full-bleed, with the star inset so the iOS rounded mask does not clip it.
-    write_png(root / "apple-touch-icon.png", 180, 0.80)
-    write_png(root / "icon-192.png", 192, 0.80)
-    write_png(root / "icon-512.png", 512, 0.80)
+    write_png(icons / "apple-touch-icon.png", 180, 0.80)
+    write_png(icons / "icon-192.png", 192, 0.80)
+    write_png(icons / "icon-512.png", 512, 0.80)
     # Maskable icons need the artwork inside the center safe circle.
-    write_png(root / "icon-maskable-192.png", 192, 0.62)
-    write_png(root / "icon-maskable-512.png", 512, 0.62)
+    write_png(icons / "icon-maskable-192.png", 192, 0.62)
+    write_png(icons / "icon-maskable-512.png", 512, 0.62)
+    ios_icon = root / "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
+    splash_dir = root / "ios/App/App/Assets.xcassets/Splash.imageset"
+    write_rgb_png(ios_icon, 1024, 0.72)
+    splash = splash_dir / "splash-2732x2732.png"
+    write_rgb_png(splash, 2732, 0.34)
+    for name in ("splash-2732x2732-1.png", "splash-2732x2732-2.png"):
+        (splash_dir / name).write_bytes(splash.read_bytes())
 
 
 if __name__ == "__main__":

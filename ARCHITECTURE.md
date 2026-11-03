@@ -10,7 +10,7 @@ Build an actual secure, testable and maintainable product, not a disposable visu
 - **PWA:** manifest, PNG icons (including `apple-touch-icon`) and a service worker that caches the app shell only. Private workspace data stays in `localStorage` and is not cached by the worker. Offline shell is not offline sync.
 - **Cloud (not connected):** draft Supabase/Postgres schema with RLS under `supabase/`. Still a proposal (T-002).
 - **Testing:** Node's built-in test runner, a Playwright iPhone smoke test, and a Postgres RLS smoke workflow for the draft schema.
-- **iOS later:** Capacitor wrap of these same static files. Not Expo and not React Native (ADR-001).
+- **iOS:** Capacitor 8 project in `ios/`, produced by `npm run cap:sync`. The website stays the source of truth. On the phone the workspace is a JSON file (ADR-002). Not Expo and not React Native.
 - **Hosting:** GitHub Pages. See the README for the one-publisher setup. Never expose service-role credentials to clients.
 
 ## Earlier proposal, not the current layout

@@ -1,0 +1,15 @@
+{
+  "appId": "com.statego2.itworks",
+  "appName": "It Works",
+  "webDir": "www",
+  "backgroundColor": "#f6f7fb",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f6f7fb"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "presentationOptions": ["banner", "sound", "list"]
+    }
+  }
+}

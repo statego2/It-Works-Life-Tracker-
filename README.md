@@ -19,6 +19,8 @@ npm run test:e2e
 
 `npm run test:e2e` needs Chromium for Playwright once: `npx playwright install chromium`. It drives the app at an iPhone-sized viewport.
 
+The iPhone app is this same website inside a Capacitor shell. Greek steps for a Mac, from installing Xcode to running it on a phone, are in [docs/IOS_SETUP_EL.md](docs/IOS_SETUP_EL.md). `npm run cap:sync` copies the website into the Xcode project.
+
 The app stores data in the **current browser's localStorage**. This is not a secure cloud account. The Settings menu includes **Export** and **Restore backup**; save a copy before clearing browser data. Vision images are compressed and stored locally, so keep exports small. Do not add highly sensitive information until authenticated, private cloud storage is implemented and verified.
 
 Tests run in GitHub Actions, including an isolated PostgreSQL 16 two-account RLS smoke suite for the *future* cloud schema. The database schema is not installed in a production project.
