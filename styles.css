@@ -99,11 +99,8 @@ body{padding-left:var(--safe-left);padding-right:var(--safe-right)}
 .appearance-switch{display:flex;gap:6px;overflow-x:auto;margin:0 0 16px;scrollbar-width:none}
 .appearance-switch button{flex:0 0 auto;border:1px solid var(--line,#e8eaf2);background:transparent;color:inherit;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:750}
 .appearance-switch button[aria-pressed="true"]{background:#6259c8;color:#fff;border-color:transparent}
-.vision-hero{position:relative;margin:0 0 18px}
-.vision-fallback{height:230px;border-radius:18px;background:radial-gradient(ellipse at 72% 38%,#f2c56a 0%,transparent 36%),linear-gradient(180deg,#24365c 0%,#c56a32 46%,#1a120e 100%)}
-.vision-hero .vision-photo{width:100%;height:230px;object-fit:cover;border-radius:18px;max-height:none}
-.emblem,.emblem-photo{width:148px;height:148px;border-radius:50%;margin:-54px auto 8px;display:block;position:relative;object-fit:cover;border:1px solid #ffffff40}
-.emblem{background:radial-gradient(circle at 50% 42%,#f4f0e8 0%,#b7b1a6 46%,#3a3a40 78%);box-shadow:0 16px 36px #00000055}
+.vision-hero,.vision-fallback,.emblem,.crystal,.crystal-glow{display:none}
+.vision-panel .vision-photo{width:100%;max-height:320px;object-fit:cover;display:block}
 .affirmation-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .affirmation-list li{display:flex;gap:8px;justify-content:center;text-align:center}
 .affirmation-list span{min-width:1.4em}

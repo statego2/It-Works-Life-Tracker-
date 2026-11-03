@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { demoWorkspace, emptyWorkspace } from "../src/domain.js";
 import { makeBackup, parseBackup, validateWorkspace } from "../src/backup.js";
-import { moveAffirmation, normalizeAppearance, orderedAffirmations } from "../src/appearance.js";
+import { demoNarrative, moveAffirmation, normalizeAppearance, orderedAffirmations } from "../src/appearance.js";
 
 test("an old backup without identity copy still restores", () => {
   const legacy = emptyWorkspace();
@@ -17,6 +17,9 @@ test("an old backup without identity copy still restores", () => {
 
 test("demo narrative keeps affirmation order, chips, and survives a backup round trip", () => {
   const original = demoWorkspace();
+  const story = demoNarrative();
+  original.affirmations = story.affirmations;
+  original.identity = story.identity;
   assert.deepEqual(orderedAffirmations(original).map((item) => item.order), [0, 1, 2, 3]);
   assert.equal(original.identity.sections[1].chips.length, 3);
   const restored = parseBackup(JSON.stringify(makeBackup(original)));
@@ -26,7 +29,8 @@ test("demo narrative keeps affirmation order, chips, and survives a backup round
 });
 
 test("affirmation order can change without dropping text, and broken rows are ignored", () => {
-  const state = validateWorkspace(demoWorkspace());
+  const story = demoNarrative();
+  const state = validateWorkspace({...demoWorkspace(), affirmations: story.affirmations, identity: story.identity});
   const first = state.affirmations[0].text;
   const second = state.affirmations[1].text;
   assert.equal(moveAffirmation(state, state.affirmations[1].id, -1), true);

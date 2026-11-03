@@ -1,4 +1,3 @@
-import {demoNarrative} from "./appearance.js";
 
 /** Pure product logic, independent of DOM, browser storage or any web framework. */
 export const VALUE_TYPES = ["number", "money", "percentage", "boolean", "frequency"];
@@ -195,10 +194,6 @@ export function demoWorkspace() {
   s.metrics = examples.map(createMetric);
   s.metrics[0].gold = true;
   s.metrics[2].gold = true;
-  s.purpose = {text:"Να δημιουργώ συνειδητά μια ζωή που αντανακλά τις δικές μου αξίες.",visible:true};
-  const story = demoNarrative();
-  s.affirmations = story.affirmations;
-  s.identity = story.identity;
-  s.appearance = {direction:"sanctuary",scheme:"dark",showAffirmations:true,showIdentity:true};
+  s.purpose = {text:"",visible:false};
   return s;
 }
