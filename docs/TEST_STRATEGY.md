@@ -1,6 +1,6 @@
 # Test Strategy — It Works
 
-**Status:** required quality criteria, not yet running tests.
+**Status:** running. `npm test` covers domain rules, backup validation, vision-photo sizing, save rollback and the Pages artifact check. `npm run test:e2e` is a Playwright smoke test at an iPhone viewport (create area and metric, update a value, reload, backup export and restore, failed-save rollback). GitHub Actions runs both. A separate workflow runs the draft Postgres RLS smoke test. Authenticated product journeys are still future work.
 
 ## Test layers
 1. **Pure unit tests:** domain comparators, value validation, timezone functions, version interpretation and history selectors.
@@ -50,7 +50,7 @@
 - Domain unit suite.
 - Schema validation/tests.
 - Integration/RLS suite if schema changes; use isolated secretless local environment or appropriately scoped CI secrets.
-- E2E smoke suite when the UI workflows exist.
+- E2E smoke suite for the local PWA: create a folder and metric, record an actual, reload, and round-trip a backup. Include the failed-save rollback.
 - Dependency/security scan as the product approaches public release.
 
 ## Evidence requirements

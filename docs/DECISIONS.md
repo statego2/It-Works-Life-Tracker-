@@ -16,15 +16,38 @@ Maintained to distinguish **confirmed product requirements**, **reversible techn
 | P-009 | Preserve historical actuals and evolution of metrics. | Confirmed |
 | P-010 | Final dashboard layout and visual design are a separate future discussion. | Confirmed |
 
+## Confirmed by product owner — 2026-11-03
+| ID | Decision | Status |
+| --- | --- | --- |
+| P-011 | Keep shipping the web app as a PWA. A later iPhone app is a Capacitor wrap of that same web app, not an Expo or React Native rewrite. | Confirmed |
+
 ## Proposed technology decisions — pending scaffold validation
 | ID | Proposal | Rationale | Status |
 | --- | --- | --- | --- |
-| T-001 | Next.js/React/TypeScript web client | Productive web/PWA development; ecosystem | Proposed |
-| T-002 | Supabase Auth/PostgreSQL/RLS | Cloud auth plus relational schema and tenant controls | Proposed |
-| T-003 | Pure TypeScript domain package + explicit contracts | Native portability and isolated tests | Proposed |
-| T-004 | Later Expo/React Native client | Shares domain and services; native UI developed independently | Proposed |
-| T-005 | Vitest + Playwright + DB integration tests | Domain correctness, user journeys, RLS isolation | Proposed |
-| T-006 | Incremental monorepo structure | Can host web and shared packages without future extraction | Proposed |
+| T-001 | Next.js/React/TypeScript web client | Productive web/PWA development; ecosystem | Superseded by ADR-001. The shipping client is the vanilla JavaScript PWA. |
+| T-002 | Supabase Auth/PostgreSQL/RLS | Cloud auth plus relational schema and tenant controls | Proposed. A draft schema exists and is not connected to the app. |
+| T-003 | Pure TypeScript domain package + explicit contracts | Native portability and isolated tests | Deferred. Current domain logic is plain JavaScript in `src/domain.js`, with no DOM. |
+| T-004 | Later Expo/React Native client | Shares domain and services; native UI developed independently | Superseded by ADR-001. The iOS path is a Capacitor wrap. |
+| T-005 | Vitest + Playwright + DB integration tests | Domain correctness, user journeys, RLS isolation | Partially adopted. Node's built-in test runner covers domain, backup and save behavior. Playwright covers the iPhone PWA smoke test. Postgres RLS smoke covers the draft schema. Vitest is not in use. |
+| T-006 | Incremental monorepo structure | Can host web and shared packages without future extraction | Deferred. The PWA lives at the repository root and has no build step. |
+
+## ADR-001 — Web-first PWA, then a Capacitor wrap for iOS
+**Date:** 2026-11-03
+**Status:** Accepted by product owner Dimitris
+
+**Context.** P-006 already says web/PWA first, with a native-ready shape. T-001 proposed a Next.js client and T-004 proposed a later Expo / React Native client. The working app is a dependency-free vanilla JavaScript PWA (Greek UI, localStorage, GitHub Pages). Rewriting it in Next.js or React Native would throw away a working dashboard before the layout is even approved (P-010).
+
+**Decision.**
+- The product stays a web app first, installed on iPhone from Safari (Add to Home Screen) and served as a PWA.
+- When a real iPhone binary is built, it will be a Capacitor wrap of this same web app, not Expo and not React Native.
+- Do not start a Next.js rewrite or an Expo client unless a later decision replaces this one.
+- Widgets, local notifications, Xcode signing and the Apple Developer Program are not part of this decision. They wait for the Capacitor phase.
+
+**Consequences.**
+- Domain rules stay in portable plain JavaScript (`src/domain.js`) so the WebView can reuse them.
+- UI code stays the current HTML/CSS/JS. A Capacitor project would copy those static files; it would not replace them with React Native screens.
+- Supabase (T-002) remains a proposal for cloud accounts. This decision does not connect it.
+- GitHub Pages is the current public host. Two publishers are configured today (the legacy "Deploy from a branch" source on `main` `/`, and `.github/workflows/deploy-pages.yml`). Only one should publish. Switching the source to GitHub Actions is a repository setting and is recorded in the README; it is not changed from a pull request.
 
 **Stack changes** may be made by implementers if justified with maintenance, security, deployment and portability trade-offs in an Architecture Decision Record (ADR).
 

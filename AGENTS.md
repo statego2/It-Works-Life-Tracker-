@@ -30,15 +30,15 @@ If something is unclear, take the smallest **reversible** interpretation consist
 ## 2. Engineering quality bar
 This is intended to become a real, maintainable consumer application if validated. **Never build a throwaway demo architecture** or hardcode the product owner's life as code.
 
-Preferred architecture:
-- Next.js/React/TypeScript PWA web client (initial).
-- Cloud authentication and PostgreSQL with RLS (Supabase recommended).
-- Portable TypeScript domain and schema/contracts packages, no Next/React dependency in pure domain logic.
-- Versioned migrations and tenant-safe DB ownership.
-- Future native iOS/Android via Expo/React Native consuming shared contracts/domain with a different UI.
+Preferred architecture (ADR-001, product owner, 2026-11-03):
+- The shipping client is the vanilla JavaScript PWA already in this repository (no build step, Greek UI, GitHub Pages). Do not rewrite it in Next.js unless a later decision says so.
+- Cloud authentication and PostgreSQL with RLS (Supabase recommended) remain a proposal. The draft schema is not connected to the app.
+- Domain logic stays in portable plain JavaScript (`src/domain.js`) with no DOM dependency.
+- Versioned migrations and tenant-safe DB ownership, when cloud persistence is actually built.
+- A later iPhone app is a Capacitor wrap of this web app, not Expo and not React Native.
 - Modular boundaries and automated tests; use actual, supported provider APIs and confirm versions from installed dependency docs.
 
-These are proposed technology choices, **not a reason to stall**. An equivalent approach is acceptable if documented in `docs/DECISIONS.md` and approved where it changes product promises.
+These choices are **not a reason to stall**. A different approach is acceptable only when `docs/DECISIONS.md` records it and, where it changes a confirmed decision, the product owner has approved it.
 
 ## 3. Working method for every task
 1. Inspect current files, active branch, open relevant instructions and existing implementation. Do not assume a blank repository once code exists.
@@ -77,7 +77,7 @@ These are proposed technology choices, **not a reason to stall**. An equivalent 
 Do not confuse a well-designed concept page with working software. Do not claim a successful deployment, auth integration or sync without testing it.
 
 ## 7. Native-ready means portability, not premature mobile development
-- Domain computation in pure TypeScript independent of Next.js.
+- Domain computation in plain JavaScript independent of the page (`src/domain.js`). Do not move it into a Next.js or React Native UI.
 - Typed backend contracts; explicitly version breaking API changes.
 - Auth/DB/device integration through adapters or contained services.
 - Platform UI concerns remain in the app layer.

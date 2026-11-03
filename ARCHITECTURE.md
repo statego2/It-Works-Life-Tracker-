@@ -1,44 +1,43 @@
 # Architecture — Native-ready Web/PWA First
 
-**State:** Proposed implementation blueprint; stack is a recommendation, not yet a completed installation or irreversible mandate. Validate tool versions and exact capabilities at implementation time.
+**State:** The shipping client is the vanilla JavaScript PWA at the repository root (no build step). ADR-001 in `docs/DECISIONS.md` is the stack decision: web/PWA first, then a Capacitor wrap for iOS. The monorepo diagram below is an old proposal, not the current layout. Supabase remains unconnected.
 
 ## Objectives
-Build an actual secure, testable and maintainable product, not a disposable visual demo. Favor a thin web client over coupling core business logic to a UI framework. Preserve optionality for future iOS/Android clients without investing in two interfaces now.
+Build an actual secure, testable and maintainable product, not a disposable visual demo. Keep comparison rules out of the page. Do not start a second UI until the Capacitor wrap is actually in progress.
 
-## Recommended stack
-- **Web:** Next.js + React + TypeScript (App Router) with strict TypeScript.
-- **PWA:** web manifest, icons, installability and deliberately bounded caching/service worker (never promise offline sync until implemented).
-- **Cloud:** Supabase Auth + PostgreSQL + Row Level Security (RLS) and versioned migrations.
-- **Validation/contracts:** Zod (or another explicit, versioned schema contract) shared between clients/server.
-- **Testing:** Vitest for pure domain logic, integration tests against isolated local/test Postgres/Supabase, Playwright for end-to-end.
-- **Native later:** Expo / React Native with shared domain and contract packages; UI code is expected to be platform-specific.
-- **Hosting:** choose a compatible host/deployment pipeline after local functional verification. Never expose service-role credentials to clients.
+## Current stack
+- **Web:** static `index.html`, `styles.css` and `src/*.js`. Domain rules live in `src/domain.js` and do not touch the DOM.
+- **PWA:** manifest, PNG icons (including `apple-touch-icon`) and a service worker that caches the app shell only. Private workspace data stays in `localStorage` and is not cached by the worker. Offline shell is not offline sync.
+- **Cloud (not connected):** draft Supabase/Postgres schema with RLS under `supabase/`. Still a proposal (T-002).
+- **Testing:** Node's built-in test runner, a Playwright iPhone smoke test, and a Postgres RLS smoke workflow for the draft schema.
+- **iOS later:** Capacitor wrap of these same static files. Not Expo and not React Native (ADR-001).
+- **Hosting:** GitHub Pages. See the README for the one-publisher setup. Never expose service-role credentials to clients.
 
-Alternate equivalent technology may be justified by a documented decision record. The architecture boundaries below matter more than specific vendors.
+## Earlier proposal, not the current layout
+The notes below described a Next.js and Expo monorepo. ADR-001 superseded that client choice. They remain only as a boundary sketch if a future decision splits packages.
 
 ## Proposed repository layout
 ```
 apps/
-  web/                    # Next.js UI, PWA, API boundaries
-  mobile/                 # Future Expo app; not required for MVP
+  web/                    # Not created. The PWA is the repository root.
+  mobile/                 # Future Capacitor iOS project; not required yet
 packages/
-  domain/                 # Pure TS logic: metrics, comparisons, formatting-agnostic rules
-  contracts/              # Shared input/output schemas, discriminated unions
+  domain/                 # Not created. Rules live in src/domain.js today.
+  contracts/              # Shared input/output schemas, if a second client appears
   data-access/            # Backend-adapter interfaces; no UI-specific semantics
 supabase/
-  migrations/             # Versioned SQL and RLS policies
-  seed.sql                # Fictional, optional development fixtures only
+  migrations/             # Draft SQL and RLS policies; not connected
 docs/
   DATA_MODEL.md
   SECURITY_PRIVACY.md
   TEST_STRATEGY.md
   DECISIONS.md
 ```
-Create this scaffold incrementally. Prefer a monorepo with workspace tooling once real packages exist; do not generate empty modules merely to mimic this diagram.
+Do not generate empty modules merely to mimic this diagram. Split packages only when a second runtime needs them.
 
 ## Logical boundaries
 ```
-[Web UI / PWA]          [Future Expo UI]
+[Web UI / PWA]          [Future Capacitor WebView]
       |                       |
       +----> [Shared contracts] <----+
                      |
@@ -75,11 +74,11 @@ A domain-level function accepts (metric definition, current observation or null,
 It must not return a universal 0–100% happiness/life score. Formatting, localization, charting and component placement live in UI, not domain.
 
 ## PWA and eventual native portability
-- Use a domain package without React/DOM/Next imports.
-- Portable schema contracts and a documented authenticated API interface.
+- Keep domain rules in `src/domain.js`, with no DOM dependency.
+- Portable schema contracts and a documented authenticated API interface, when cloud persistence exists.
 - Encapsulate auth/session, storage, notifications, timezone and offline persistence behind adapters.
-- Avoid implementing core rules in server components or client hooks.
-- Mobile later reuses domain, types and server services, but will have its own layout and navigation.
+- Do not implement comparison rules in UI code.
+- The later iPhone app is a Capacitor wrap of this PWA (ADR-001), so it reuses the same pages rather than a second native layout.
 - Document migration paths, data portability, and API versioning.
 
 ## Cloud, sync and history

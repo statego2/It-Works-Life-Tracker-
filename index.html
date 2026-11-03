@@ -2,20 +2,26 @@
 <html lang="el">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f6f7fb" />
   <meta name="description" content="It Works — Η ζωή σου. Τα δικά σου standards. Η δική σου πρόοδος." />
   <meta name="color-scheme" content="light" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="It Works" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" sizes="180x180" />
+  <link rel="icon" href="./icons/icon-192.png" type="image/png" sizes="192x192" />
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./styles.css?v=20261103-backup-v1" />
-  <title>It Works — Life Tracker · Compact</title>
+  <link rel="stylesheet" href="./styles.css?v=20261103-iphone-v8" />
+  <title>It Works — Life Tracker</title>
 </head>
 <body>
   <div id="root"></div>
   <div id="modal-root"></div>
   <input id="backup-file" type="file" accept=".json,application/json" hidden aria-label="Επαναφορά δεδομένων από backup" />
   <div id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./src/app.js?v=20261103-backup-v1"></script>
+  <script type="module" src="./src/app.js?v=20261103-iphone-v8"></script>
 </body>
 </html>
