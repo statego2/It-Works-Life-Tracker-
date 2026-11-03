@@ -194,6 +194,6 @@ export function demoWorkspace() {
   s.metrics = examples.map(createMetric);
   s.metrics[0].gold = true;
   s.metrics[2].gold = true;
-  s.purpose = {text:"",visible:false};
+  s.purpose = {text:"Να δημιουργώ συνειδητά μια ζωή που αντανακλά τις δικές μου αξίες.",visible:true};
   return s;
 }

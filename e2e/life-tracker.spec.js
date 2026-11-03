@@ -116,6 +116,17 @@ test("install metadata allows zoom and asks to keep storage", async ({ page }) =
   expect(fontSize).toBeGreaterThanOrEqual(16);
 });
 
+test("the example appears only after its button is tapped", async ({ page }) => {
+  page.on("dialog", (dialog) => dialog.accept());
+  await resetApp(page);
+  await expect(page.getByRole("heading", { name: "Σχέσεις & φίλοι", level: 3 })).toHaveCount(0);
+  await expect(page.getByText("Να δημιουργώ συνειδητά μια ζωή που αντανακλά τις δικές μου αξίες.")).toHaveCount(0);
+  await page.getByRole("button", { name: "Δες ένα παράδειγμα" }).click();
+  await expect(page.getByRole("heading", { name: "Σχέσεις & φίλοι", level: 3 })).toBeVisible();
+  await expect(page.getByText("Να δημιουργώ συνειδητά μια ζωή που αντανακλά τις δικές μου αξίες.")).toBeVisible();
+  await expect(page.getByText("Κρατώ τον λόγο που δίνω στον εαυτό μου.")).toHaveCount(0);
+});
+
 test("create a folder, a custom goal, mark it favorite, and reorder folders", async ({ page }) => {
   page.on("dialog", (dialog) => dialog.accept());
   await resetApp(page);
