@@ -20,15 +20,61 @@ jobs:
         run: |
           npm ci
           npm run cap:sync
+      - name: Choose an iPhone Pro simulator
+        id: sim
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+          chosen = None
+          for runtime, devices in data.get("devices", {}).items():
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  name = device.get("name", "")
+                  if device.get("isAvailable") and name.startswith("iPhone") and "Pro" in name and "Max" not in name:
+                      chosen = device
+                      break
+              if chosen:
+                  break
+          if not chosen:
+              raise SystemExit("No iPhone Pro simulator is available")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+              handle.write(f"udid={chosen['udid']}\n")
+          print(chosen["name"], chosen["udid"])
+          PY
       - name: Build for the iOS Simulator
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath ios/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
+      - name: Boot the simulator and capture the native screens
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.sim.outputs.udid }}"
+          APP="$(find ios/DerivedData -path '*Debug-iphonesimulator*' -name 'App.app' -type d | head -1)"
+          test -n "$APP"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl ui "$UDID" appearance dark
+          mkdir -p screenshots
+          for screen in dashboard sheet settings; do
+            printf '{"screen":"%s"}\n' "$screen" > "$APP/public/preview.json"
+            xcrun simctl install "$UDID" "$APP"
+            xcrun simctl terminate "$UDID" com.statego2.itworks || true
+            xcrun simctl launch "$UDID" com.statego2.itworks
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "screenshots/${screen}.png"
+          done
+      - name: Upload simulator screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-screenshots
+          path: screenshots/*.png

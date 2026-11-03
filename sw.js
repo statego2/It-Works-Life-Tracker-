@@ -1,23 +1,23 @@
 // Static shell cache only. Sensitive workspace data is NOT cached by the service worker.
-const CACHE = 'itworks-shell-v10-themes';
+const CACHE = 'itworks-shell-v11-native';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=20261103-themes-v10',
-  './src/app.js?v=20261103-themes-v10',
-  './src/domain.js?v=20261103-themes-v10',
+  './styles.css?v=20261103-native-v11',
+  './src/app.js?v=20261103-native-v11',
+  './src/domain.js?v=20261103-native-v11',
   './src/domain.js',
-  './src/storage.js?v=20261103-themes-v10',
-  './src/backup.js?v=20261103-themes-v10',
+  './src/storage.js?v=20261103-native-v11',
+  './src/backup.js?v=20261103-native-v11',
   './src/backup.js',
-  './src/vision.js?v=20261103-themes-v10',
+  './src/vision.js?v=20261103-native-v11',
   './src/vision.js',
-  './src/persist.js?v=20261103-themes-v10',
+  './src/persist.js?v=20261103-native-v11',
   './src/native-store.js',
-  './src/reminders.js?v=20261103-themes-v10',
+  './src/reminders.js?v=20261103-native-v11',
   './src/reminders.js',
-  './src/widget-snapshot.js?v=20261103-themes-v10',
-  './src/appearance.js?v=20261103-themes-v10',
+  './src/widget-snapshot.js?v=20261103-native-v11',
+  './src/appearance.js?v=20261103-native-v11',
   './src/appearance.js',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
@@ -25,7 +25,8 @@ const ASSETS = [
   './icons/icon-512.png',
   './icons/icon-maskable-192.png',
   './icons/icon-maskable-512.png',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './preview.json'
 ];
 self.addEventListener('install', event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate', event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));

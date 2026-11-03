@@ -1,23 +1,25 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-themes-v10';
-import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-themes-v10';
-import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-themes-v10';
-import {DIRECTION_LABELS,DIRECTIONS,moveAffirmation,orderedAffirmations} from './appearance.js?v=20261103-themes-v10';
-import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-themes-v10';
-import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-themes-v10';
-import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-themes-v10';
-import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-themes-v10';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-native-v11';
+import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-native-v11';
+import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-native-v11';
+import {DIRECTION_LABELS,DIRECTIONS,moveAffirmation,orderedAffirmations} from './appearance.js?v=20261103-native-v11';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-native-v11';
+import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-native-v11';
+import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-native-v11';
+import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-native-v11';
 
 await initStorage();
 let workspace = loadWorkspace();
 workspace.notes ??=[];
 workspace.vision ??={visible:false,mode:'fixed',rotationHours:3,images:[]};
 let view = 'all';
+let tab = 'today';
 let ordering = false;
 normalizeMetricOrders(workspace);
 let lastSaved = structuredClone(workspace);
 let reminders = sanitizeReminders(loadReminders());
 let saveError = '';
 let toastTimer;
+let ignoreClick=false;
 const root = document.getElementById('root');
 const modalRoot = document.getElementById('modal-root');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -38,6 +40,18 @@ function publishWidget(state){
   const json=JSON.stringify(goldWidgetSnapshot(state));
   cap.nativePromise('WidgetBridge','setSnapshot',{json}).catch(error=>console.warn('It Works: widget snapshot was not saved',error));
 }
+function hapticImpact(style='LIGHT'){
+  const cap=window.Capacitor;
+  if(!cap?.isNativePlatform?.()||typeof cap.nativePromise!=='function')return;
+  cap.nativePromise('Haptics','impact',{style}).catch(()=>{});
+}
+function syncStatusBar(){
+  const cap=window.Capacitor;
+  if(!cap?.isNativePlatform?.()||typeof cap.nativePromise!=='function')return;
+  const dark=workspace.appearance?.scheme!=='light';
+  cap.nativePromise('StatusBar','setOverlaysWebView',{overlay:true}).catch(()=>{});
+  cap.nativePromise('StatusBar','setStyle',{style:dark?'DARK':'LIGHT'}).catch(()=>{});
+}
 function applyAppearance(){
   const appearance=workspace.appearance||{direction:'sanctuary',scheme:'dark'};
   document.documentElement.dataset.direction=appearance.direction;
@@ -45,6 +59,44 @@ function applyAppearance(){
   document.documentElement.style.colorScheme=appearance.scheme==='dark'?'dark':'light';
   const theme=document.querySelector('meta[name="theme-color"]');
   if(theme)theme.content=appearance.scheme==='dark'?'#07080c':'#f6f7fb';
+  syncStatusBar();
+}
+function bindChrome(){
+  const scroller=document.getElementById('screen-scroll');
+  const bar=document.getElementById('nav-bar');
+  if(scroller&&bar)scroller.addEventListener('scroll',()=>bar.classList.toggle('collapsed',scroller.scrollTop>16),{passive:true});
+  document.querySelectorAll('.swipe-row').forEach(row=>{
+    let startX=0, startY=0, dx=0, timer=0, pressing=true;
+    const front=row.querySelector('.swipe-front');
+    row.addEventListener('pointerdown',event=>{
+      startX=event.clientX;startY=event.clientY;dx=0;pressing=true;
+      timer=setTimeout(()=>{
+        if(!pressing)return;
+        ignoreClick=true;
+        const metric=metricById(row.dataset.id);
+        if(!metric)return;
+        metric.gold=!metric.gold;
+        if(metric.gold)metric.goldOrder=orderedGoldMetrics(workspace).length;else delete metric.goldOrder;
+        hapticImpact('MEDIUM');
+        commit(metric.gold?'Προστέθηκε στους χρυσούς στόχους':'Αφαιρέθηκε από χρυσούς στόχους');
+      },480);
+    });
+    row.addEventListener('pointermove',event=>{
+      dx=event.clientX-startX;
+      if(Math.abs(dx)>12||Math.abs(event.clientY-startY)>12){pressing=false;clearTimeout(timer);}
+      if(dx<0&&front)front.style.transform=`translateX(${Math.max(dx,-148)}px)`;
+    });
+    const end=()=>{
+      clearTimeout(timer);pressing=false;
+      if(!front)return;
+      const open=dx<-64;
+      front.style.transform=open?'translateX(-148px)':'';
+      if(open)hapticImpact();
+      dx=0;
+    };
+    row.addEventListener('pointerup',end);
+    row.addEventListener('pointercancel',end);
+  });
 }
 function renderSwitcher(){
   const appearance=workspace.appearance;
@@ -162,51 +214,79 @@ function renderNotes(){
 function showNoteForm(note=null){
  showDialog(dialogFrame(note?'Σημείωση':'Νέα σημείωση',`<form id="entry-form" data-form="note" data-id="${esc(note?.id||'')}"><div class="field"><label>Τίτλος</label><input name="title" maxlength="120" value="${esc(note?.title||'')}"/></div><div class="field"><label>Κείμενο</label><textarea name="body" rows="9" maxlength="4000">${esc(note?.body||'')}</textarea></div><label class="check-line"><input type="checkbox" name="pinned" ${note?.pinned?'checked':''}/> Πάνω πάνω</label>${note?`<button class="danger-link" type="button" data-action="delete-note" data-id="${esc(note.id)}">Διαγραφή σημείωσης</button>`:''}</form>`));
 }
+const TAB_TITLES={today:'Σήμερα',goals:'Στόχοι',vision:'Όραμα',settings:'Ρυθμίσεις'};
+function tabIcon(name){
+  const paths={
+    today:'M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z',
+    goals:'M12 3.5 14.2 9H20l-4.7 3.6 1.8 5.6L12 14.8 6.9 18.2 8.7 12.6 4 9h5.8L12 3.5Z',
+    vision:'M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Zm4.2 1.2a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8ZM6.2 16.2l3.2-3.4 2.1 2.2 2.6-3.2 3.7 4.4H6.2Z',
+    settings:'M12 8.2A3.8 3.8 0 1 0 12 15.8 3.8 3.8 0 0 0 12 8.2Zm7.2 3.1-1.6-.3a6.2 6.2 0 0 0-.5-1.2l.9-1.3-1.1-1.1-1.3.9a6.2 6.2 0 0 0-1.2-.5l-.3-1.6h-1.6l-.3 1.6a6.2 6.2 0 0 0-1.2.5l-1.3-.9-1.1 1.1.9 1.3c-.2.4-.4.8-.5 1.2l-1.6.3v1.6l1.6.3c.1.4.3.8.5 1.2l-.9 1.3 1.1 1.1 1.3-.9c.4.2.8.4 1.2.5l.3 1.6h1.6l.3-1.6c.4-.1.8-.3 1.2-.5l1.3.9 1.1-1.1-.9-1.3c.2-.4.4-.8.5-1.2l1.6-.3v-1.6Z'
+  };
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${paths[name]}"/></svg>`;
+}
+function renderGoalRow(metric){
+  const result=compareMetric(metric), actual=result.actual?.value, target=result.target?.value;
+  const progress=metricProgress(metric,result);
+  const currentText=valueLabel(actual,metric), targetText=valueLabel(target,metric);
+  const progressMarkup=progress
+    ? `<div class="compact-track" role="progressbar" aria-label="${esc(metric.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.filled}" aria-valuetext="${esc(currentText)} από ${esc(targetText)}"><span style="width:${progress.filled}%"></span></div>`
+    : `<div class="compact-state">${result.status==='unknown'?'Δεν έχει καταγραφεί':result.status==='incompatible'?'Μη συγκρίσιμες τιμές':result.status==='not_configured'?'Χωρίς στόχο':metric.type==='boolean'?(result.status==='met'?'Σύμφωνο με τον στόχο':'Διαφορετική κατάσταση'):'Χωρίς ποσοστό'}</div>`;
+  return `<div class="swipe-row" data-id="${esc(metric.id)}"><div class="swipe-actions"><button type="button" data-action="edit-metric" data-id="${esc(metric.id)}">Επεξεργασία</button><button type="button" data-action="delete-metric" data-id="${esc(metric.id)}">Διαγραφή</button></div><button type="button" class="goal-row swipe-front compact-card" data-action="update" data-id="${esc(metric.id)}" aria-label="Ενημέρωση: ${esc(metric.title)}"><div class="goal-title"><span>${esc(metric.title)}</span>${metric.gold?'<i class="gold-mark" aria-label="Χρυσός στόχος">★</i>':''}</div><div class="compact-values"><span class="current-hit"><small>ΤΩΡΑ</small><strong>${currentText}</strong></span><span class="target-hit"><small>ΣΤΟΧΟΣ</small><strong>${targetText}</strong></span></div>${progressMarkup}</button></div>`;
+}
+function renderToday(areas, gold){
+  if(!areas.length)return `<section class="empty-native"><h2>Η ζωή σου, σε μία οθόνη</h2><p>Φτιάξε έναν τομέα και βάλε το τώρα αριστερά, τον στόχο δεξιά.</p><button type="button" class="primary-btn" data-action="add-area">Δημιουργία πρώτου τομέα</button><button type="button" class="text-btn" data-action="load-demo">Δες ένα παράδειγμα</button></section>`;
+  const purpose=workspace.purpose.visible&&workspace.purpose.text?`<button type="button" class="purpose-line" data-action="purpose">${esc(workspace.purpose.text)}</button>`:'';
+  const goals=gold.length?`<section class="group"><h2 class="group-label">Χρυσοί στόχοι</h2><div class="inset-group">${gold.map(renderGoalRow).join('')}</div></section>`:'';
+  return `<div class="story-stack">${purpose}${renderHero()}${renderAffirmations()}${renderIdentity()}</div>${goals}`;
+}
+function renderGoals(areas, gold){
+  if(!areas.length)return `<section class="empty-native"><h2>Δεν υπάρχουν στόχοι</h2><button type="button" class="primary-btn" data-action="add-area">Δημιουργία πρώτου τομέα</button></section>`;
+  const goldBlock=gold.length?`<section class="group"><h2 class="group-label">Χρυσοί στόχοι</h2><div class="inset-group">${gold.map(renderGoalRow).join('')}</div></section>`:'';
+  const folders=areas.map(area=>{
+    const metrics=metricsInArea(workspace, area.id);
+    return `<section class="group"><h3 class="group-title">${esc(area.name)}</h3><div class="inset-group">${metrics.map(renderGoalRow).join('')||'<p class="row-empty">Κανένας στόχος ακόμη.</p>'}<button type="button" class="row-add" data-action="add-metric" data-area="${esc(area.id)}">Νέος στόχος</button></div></section>`;
+  }).join('');
+  return `${goldBlock}${folders}`;
+}
+function renderVisionTab(){
+  return `<div class="story-stack vision-screen">${renderHero()}<button type="button" class="primary-btn" data-action="vision">Διαχείριση εικόνων</button><p class="group-foot">Οι φωτογραφίες μένουν σε αυτή τη συσκευή.</p></div>`;
+}
+function renderSettings(){
+  const appearance=workspace.appearance;
+  const directions=DIRECTIONS.map(direction=>`<button type="button" data-action="direction" data-direction="${direction}" aria-pressed="${appearance.direction===direction}">${DIRECTION_LABELS[direction]}</button>`).join('');
+  return `<section class="group"><h2 class="group-label">Εμφάνιση</h2><div class="inset-group settings-card"><div class="segmented" role="group" aria-label="Πρόταση εμφάνισης">${directions}</div><label class="toggle-row"><span>Σκούρο</span><input type="checkbox" data-action="scheme-toggle" ${appearance.scheme==='dark'?'checked':''} aria-label="Σκούρο θέμα"/></label></div><p class="group-foot">Οι τρεις όψεις είναι προτάσεις. Το Σημείωμα είναι η προεπιλογή.</p></section>
+  <section class="group"><h2 class="group-label">Κείμενα</h2><div class="inset-group">${[['purpose','Σκοπός'],['affirmations','Δηλώσεις'],['identity','Ταυτότητα και αποστολή'],['reminders','Υπενθυμίσεις'],['add-note','Νέα σημείωση']].map(([action,label])=>`<button type="button" class="settings-row" data-action="${action}">${label}</button>`).join('')}${workspace.notes.length?`<div class="notes-inline">${[...workspace.notes].sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt.localeCompare(a.updatedAt)).map(note=>`<button type="button" class="settings-row" data-action="edit-note" data-id="${esc(note.id)}">${esc(note.title||'Χωρίς τίτλο')}</button>`).join('')}</div>`:''}</div></section>
+  <section class="group"><h2 class="group-label">Δεδομένα</h2><div class="inset-group"><button type="button" class="settings-row" data-action="export">Εξαγωγή</button><button type="button" class="settings-row" data-action="import">Επαναφορά</button><button type="button" class="settings-row" data-action="load-demo">Δες ένα παράδειγμα</button><button type="button" class="settings-row danger" data-action="reset">Εκκαθάριση</button></div><p class="group-foot">Τα δεδομένα μένουν σε αυτή τη συσκευή. Δεν υπάρχει λογαριασμός ή συγχρονισμός.</p></section>`;
+}
 function render(){
   applyAppearance();
   const areas=orderedAreas(workspace);
-  const selectedArea=areaById(view);
   const gold=orderedGoldMetrics(workspace);
-  const showGold=view==='all' && gold.length;
-  const visibleAreas=selectedArea?[selectedArea]:['gold','notes'].includes(view)?[]:areas;
-  const title=selectedArea?selectedArea.name:view==='gold'?'Χρυσοί στόχοι':view==='notes'?'Σημειώσεις':'Η συνολική μου εικόνα';
-  root.innerHTML=`<div class="shell">
-    <aside class="sidebar">
-      <div class="brand"><div class="brand-icon">✦</div><div><b>it works<span>.</span></b><small>LIFE TRACKER</small></div></div>
-      <div class="nav-section-label">Ο ΧΩΡΟΣ ΜΟΥ</div>
-      <nav aria-label="Τομείς ζωής"><button class="nav-item ${view==='all'?'active':''}" data-action="navigate" data-view="all"><span>◫</span> Συνολική εικόνα</button><button class="nav-item ${view==='gold'?'active':''}" data-action="navigate" data-view="gold"><span class="gold-icon">★</span> Χρυσοί στόχοι</button></nav>
-      <div class="nav-divider"></div><button class="nav-item ${view==='notes'?'active':''}" data-action="navigate" data-view="notes">✎ Σημειώσεις</button><div class="side-heading"><span>ΟΙ ΤΟΜΕΙΣ ΜΟΥ</span><button data-action="add-area" class="side-add" title="Νέος φάκελος" aria-label="Νέος φάκελος">＋</button></div>
-      <nav aria-label="Προσωπικοί φάκελοι">${areas.map(a=>`<button class="nav-item ${view===a.id?'active':''}" data-action="navigate" data-view="${esc(a.id)}"><span class="area-dot" style="background:${escapeAttrColor(a.color)}"></span><span class="nav-name">${esc(a.name)}</span></button>`).join('')}${areas.length?'':'<div class="sidebar-empty">Ξεκίνα προσθέτοντας έναν τομέα.</div>'}</nav>
-      <div class="sidebar-bottom"><span class="local-dot"></span><div><b>Local Preview</b><small>Χωρίς λογαριασμό ή cloud sync</small></div></div>
-    </aside>
-    <main class="main-content">
-      <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button><button type="button" data-action="reminders">Υπενθυμίσεις</button></div></details></div></header>
-      <div class="content-wrap">
-        ${renderSwitcher()}
-        <div class="page-heading"><h1>${esc(title)}</h1></div>${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}${saveError?`<div class="save-warning" role="alert">${esc(saveError)}</div>`:''}
-        <div class="story-stack">
-        ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}${renderHero()}${renderAffirmations()}${renderIdentity()}`:''}
-        </div>
-        ${showGold?`<section class="gold-section"><div class="section-heading"><div><h2>Οι χρυσοί στόχοι μου</h2></div><button class="text-btn" data-action="navigate" data-view="gold">Προβολή όλων →</button></div><div class="gold-grid">${gold.slice(0,3).map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div></section>`:''}
-        ${view==='notes'?renderNotes():''}
-        ${view==='gold'?`${gold.length?`<div class="gold-grid">${gold.map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div>`:'<section class="empty-panel"><span class="empty-art">☆</span><h2>Δεν έχεις επιλέξει χρυσούς στόχους</h2><p>Πάτησε το αστέρι σε έναν δείκτη για να εμφανίζεται εδώ.</p><button class="primary-btn" data-action="navigate" data-view="all">Πίσω στους τομείς</button></section>'}`:''}
-        ${!['gold','notes'].includes(view)?`<section class="areas-section"><div class="section-heading"><div><h2>${selectedArea?'Standards & στόχοι':'Οι τομείς της ζωής μου'}</h2></div><button class="outline-btn" data-action="add-area"><span>＋</span> Νέος τομέας</button></div>
-        ${visibleAreas.length?`<div class="areas-stack">${visibleAreas.map(renderArea).join('')}</div>`:`<section class="empty-panel"><span class="empty-art">▦</span><h2>Η ζωή σου, οι δικοί σου τομείς</h2><p>Δημιούργησε τους φακέλους που θέλεις. Μέσα σε κάθε έναν θα βάζεις το δικό σου standard και πού βρίσκεσαι σήμερα.</p><div class="empty-actions"><button class="primary-btn" data-action="add-area">＋ Δημιουργία πρώτου τομέα</button><button class="outline-btn" data-action="load-demo">Δες ένα παράδειγμα</button></div></section>`}</section>`:''}
-        
-        <footer class="footnote"><b>Προσοχή:</b> αυτή είναι τοπική δοκιμαστική έκδοση. Τα δεδομένα μένουν μόνο στον συγκεκριμένο browser, χωρίς σύνδεση, κρυπτογράφηση λογαριασμού ή συγχρονισμό. Απόφυγε ευαίσθητα προσωπικά στοιχεία προς το παρόν. <button data-action="export">Εξαγωγή JSON</button> <button data-action="reset">Εκκαθάριση</button></footer>
-      </div>
-    </main>
+  const title=TAB_TITLES[tab]||'Σήμερα';
+  const warnings=`${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά από τις Ρυθμίσεις.</div>':''}${saveError?`<div class="save-warning" role="alert">${esc(saveError)}</div>`:''}`;
+  const action=tab==='goals'?'<button type="button" class="nav-plus" data-action="add-area" aria-label="Νέος τομέας">+</button>':tab==='vision'?'<button type="button" class="nav-plus" data-action="vision" aria-label="Επεξεργασία Vision Board">+</button>':'';
+  const body=tab==='goals'?renderGoals(areas,gold):tab==='vision'?renderVisionTab():tab==='settings'?renderSettings():renderToday(areas,gold);
+  root.innerHTML=`<div class="ios-app">
+    <header class="nav-bar" id="nav-bar"><div class="inline-title">${esc(title)}</div>${action}</header>
+    <div class="screen-scroll" id="screen-scroll"><h1 class="large-title">${esc(title)}</h1>${warnings}${body}</div>
+    <nav class="tab-bar" aria-label="Κύρια">${[['today','Σήμερα'],['goals','Στόχοι'],['vision','Όραμα'],['settings','Ρυθμίσεις']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${tab===id}" data-action="tab" data-tab="${id}">${tabIcon(id)}<span>${label}</span></button>`).join('')}</nav>
   </div>`;
+  bindChrome();
+}
+function closeSheet(){
+  const layer=modalRoot.querySelector('.sheet-layer');
+  if(!layer){modalRoot.innerHTML='';return;}
+  layer.classList.remove('open');
+  setTimeout(()=>{if(!modalRoot.querySelector('.sheet-layer.open'))modalRoot.innerHTML='';},320);
 }
 function showDialog(inner) {
-  modalRoot.innerHTML=`<dialog class="app-dialog" id="active-dialog"><div class="dialog-content">${inner}</div></dialog>`;
-  const dialog=document.getElementById('active-dialog');dialog.showModal();
-  dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
-  dialog.addEventListener('close',()=>{modalRoot.innerHTML='';});
-  const first=dialog.querySelector('input:not([type=hidden]),textarea');if(first)first.focus();
+  modalRoot.innerHTML=`<div class="sheet-layer"><button type="button" class="sheet-backdrop" data-action="close" aria-label="Κλείσιμο"></button><div class="sheet" id="active-dialog" role="dialog" aria-modal="true"><div class="grabber" aria-hidden="true"></div><div class="sheet-scroll">${inner}</div></div></div>`;
+  requestAnimationFrame(()=>modalRoot.querySelector('.sheet-layer')?.classList.add('open'));
+  hapticImpact();
+  const first=modalRoot.querySelector('input:not([type=hidden]):not([type=checkbox]),textarea');if(first)first.focus();
 }
 function dialogFrame(title,body,button='Αποθήκευση'){
-  return `<div class="dialog-head"><div><span class="eyebrow">IT WORKS</span><h2>${title}</h2></div><button type="button" data-action="close" class="icon-btn" aria-label="Κλείσιμο">✕</button></div>${body}<div class="dialog-actions"><button type="button" data-action="close" class="outline-btn">Ακύρωση</button><button class="primary-btn" type="submit" form="entry-form">${button}</button></div>`;
+  return `<div class="sheet-head"><h2>${title}</h2></div>${body}<div class="sheet-actions"><button type="button" data-action="close" class="outline-btn">Ακύρωση</button><button class="primary-btn" type="submit" form="entry-form">${button}</button></div>`;
 }
 function showAreaForm(area=null){
   showDialog(dialogFrame(area?'Επεξεργασία τομέα':'Νέος τομέας',`<form id="entry-form" data-form="area" data-id="${esc(area?.id||'')}"><label for="area-name">Όνομα φακέλου</label><input id="area-name" name="name" maxlength="80" required value="${esc(area?.name||'')}" placeholder="π.χ. Εκπαίδευση, Υγεία, Σχέσεις"/></form>${area?`<button class="danger-link" data-action="delete-area" data-id="${esc(area.id)}" type="button">Διαγραφή φακέλου και δεικτών…</button>`:''}`,area?'Αποθήκευση':'Προσθήκη'));
@@ -225,7 +305,7 @@ function measurementFields(type, targetValue=null, actualValue=null, editing=fal
 }
 function valueInput(type,name,val,required){
   if(type==='boolean')return `<select name="${name}" id="${name}" ${required?'required':''}>${!required?'<option value="">Δεν έχει καταγραφεί</option>':''}<option value="yes" ${valueForInput(val)==='yes'?'selected':''}>Ναι</option><option value="no" ${valueForInput(val)==='no'?'selected':''}>Όχι</option></select>`;
-  return `<input name="${name}" id="${name}" inputmode="decimal" ${required?'required':''} value="${esc(valueForInput(val))}" placeholder="${type==='money'?'π.χ. 2000':type==='frequency'?'π.χ. 2':'π.χ. 4'}" />`;
+  return `<div class="stepper"><button type="button" data-action="step" data-dir="-1" aria-label="Μείωση">−</button><input name="${name}" id="${name}" inputmode="decimal" ${required?'required':''} value="${esc(valueForInput(val))}" placeholder="${type==='money'?'π.χ. 2000':type==='frequency'?'π.χ. 2':'π.χ. 4'}" /><button type="button" data-action="step" data-dir="1" aria-label="Αύξηση">+</button></div>`;
 }
 function showMetricForm(areaId,metric=null){
   const editing=!!metric;
@@ -257,6 +337,7 @@ function showHistory(m){const actual=[...m.observations].reverse().map(o=>`<li><
 async function repositionArea(id,dir){const sorted=orderedAreas(workspace),i=sorted.findIndex(a=>a.id===id),other=sorted[i+dir];if(i<0||!other)return; const x=sorted[i]; const original=x.order;x.order=other.order;other.order=original; if(x.order===other.order){sorted.forEach((a,j)=>a.order=j);const tmp=sorted[i];sorted[i]=sorted[i+dir];sorted[i+dir]=tmp;sorted.forEach((a,j)=>a.order=j);}await commit('Η σειρά των τομέων ενημερώθηκε');}
 
 document.addEventListener('click',async event=>{
+  if(ignoreClick){ignoreClick=false;return;}
   const settingsMenu=document.querySelector('.settings-popover[open]');
   if(settingsMenu&&!settingsMenu.contains(event.target))settingsMenu.open=false;
   const b=event.target.closest('[data-action]');if(!b)return;
@@ -272,11 +353,13 @@ document.addEventListener('click',async event=>{
     }
     if(action==='toggle-order'){ordering=!ordering;render();return;}
     if(action==='move-metric'){if(moveMetric(workspace,id,Number(b.dataset.dir),b.dataset.collection))await commit('Η σειρά ενημερώθηκε');return;}
-    if(action==='close'){document.getElementById('active-dialog')?.close();return;}
+    if(action==='close'){closeSheet();return;}
+    if(action==='tab'){if(TAB_TITLES[b.dataset.tab]){tab=b.dataset.tab;hapticImpact();render();}return;}
+    if(action==='step'){const input=b.parentElement?.querySelector('input');if(!input)return;const current=Number(String(input.value).replace(',','.'));const base=Number.isFinite(current)?current:0;const next=Math.round((base+Number(b.dataset.dir))*100)/100;input.value=String(next);hapticImpact();return;}
     if(action==='navigate'){view=b.dataset.view;render();window.scrollTo({top:0,behavior:'smooth'});return;}
     if(action==='add-area')return showAreaForm();
-    if(action==='delete-area'){const a=areaById(id);if(!a||!confirm(`Να διαγραφεί ο φάκελος «${a.name}» και όλοι οι δείκτες του; Δεν μπορεί να αναιρεθεί.`))return;workspace.areas=workspace.areas.filter(x=>x.id!==id);workspace.metrics=workspace.metrics.filter(x=>x.areaId!==id);if(view===id)view='all';document.getElementById('active-dialog')?.close();return await commit('Ο φάκελος διαγράφηκε.');}
-    if(action==='delete-metric'){const m=metricById(id);if(!m||!confirm(`Να διαγραφεί ο δείκτης «${m.title}» και το ιστορικό του; Δεν μπορεί να αναιρεθεί.`))return;workspace.metrics=workspace.metrics.filter(x=>x.id!==id);document.getElementById('active-dialog')?.close();return await commit('Ο δείκτης διαγράφηκε.');}
+    if(action==='delete-area'){const a=areaById(id);if(!a||!confirm(`Να διαγραφεί ο φάκελος «${a.name}» και όλοι οι δείκτες του; Δεν μπορεί να αναιρεθεί.`))return;workspace.areas=workspace.areas.filter(x=>x.id!==id);workspace.metrics=workspace.metrics.filter(x=>x.areaId!==id);if(view===id)view='all';closeSheet();return await commit('Ο φάκελος διαγράφηκε.');}
+    if(action==='delete-metric'){const m=metricById(id);if(!m||!confirm(`Να διαγραφεί ο δείκτης «${m.title}» και το ιστορικό του; Δεν μπορεί να αναιρεθεί.`))return;workspace.metrics=workspace.metrics.filter(x=>x.id!==id);closeSheet();return await commit('Ο δείκτης διαγράφηκε.');}
     if(action==='edit-area')return showAreaForm(areaById(id));
     if(action==='move-area')return repositionArea(id,Number(b.dataset.dir));
     if(action==='add-metric')return showMetricForm(b.dataset.area);
@@ -294,17 +377,18 @@ document.addEventListener('click',async event=>{
     if(action==='move-affirmation'){if(moveAffirmation(workspace,id,Number(b.dataset.dir))){if(await commit('Η σειρά των δηλώσεων άλλαξε.'))showAffirmationForm();}return;}
     if(action==='delete-affirmation'){if(!confirm('Να αφαιρεθεί η δήλωση;'))return;workspace.affirmations=workspace.affirmations.filter(item=>item.id!==id);if(await commit('Η δήλωση αφαιρέθηκε.'))showAffirmationForm();return;}
     if(action==='delete-reminder'){if(!confirm('Να αφαιρεθεί η υπενθύμιση;'))return;await persistReminders(reminders.filter(r=>r.id!==id),'Η υπενθύμιση αφαιρέθηκε.');return;}
-    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;workspace.vision.images=workspace.vision.images.filter(i=>i.id!==id);if(await commit('Η φωτογραφία αφαιρέθηκε.'))showVisionForm();else document.getElementById('active-dialog')?.close();return;}
+    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;workspace.vision.images=workspace.vision.images.filter(i=>i.id!==id);if(await commit('Η φωτογραφία αφαιρέθηκε.'))showVisionForm();else closeSheet();return;}
     if(action==='edit-note')return showNoteForm(noteById(id));
-    if(action==='delete-note'){if(!confirm('Να διαγραφεί η σημείωση;'))return;workspace.notes=workspace.notes.filter(n=>n.id!==id);document.getElementById('active-dialog')?.close();return await commit();}
+    if(action==='delete-note'){if(!confirm('Να διαγραφεί η σημείωση;'))return;workspace.notes=workspace.notes.filter(n=>n.id!==id);closeSheet();return await commit();}
     if(action==='import'){document.getElementById('backup-file')?.click();return;}
     if(action==='gold'){const m=metricById(id);if(m){m.gold=!m.gold;if(m.gold)m.goldOrder=orderedGoldMetrics(workspace).length;else delete m.goldOrder;await commit(m.gold?'Προστέθηκε στους χρυσούς στόχους':'Αφαιρέθηκε από χρυσούς στόχους');}return;}
     if(action==='export'){const menu=document.querySelector('.settings-popover');if(menu)menu.open=false;exportWorkspace(workspace);return toast('Το JSON αντίγραφο δημιουργήθηκε.');}
     if(action==='load-demo'){if(workspace.areas.length&&!confirm('Να αντικατασταθούν οι τωρινοί τοπικοί δείκτες με ενδεικτικά δεδομένα;'))return;workspace=demoWorkspace();view='all';return await commit('Φορτώθηκαν φανταστικά δεδομένα παραδείγματος.');}
-    if(action==='reset'){if(!confirm('Να διαγραφούν ΟΛΑ τα δεδομένα αυτού του browser; Κάνε πρώτα εξαγωγή αν τα χρειάζεσαι.'))return;workspace={version:1,areas:[],metrics:[],purpose:{text:'',visible:true}};view='all';return await commit('Καθαρίστηκαν τα τοπικά δεδομένα.');}
+    if(action==='reset'){if(!confirm('Να διαγραφούν ΟΛΑ τα δεδομένα αυτού του browser; Κάνε πρώτα εξαγωγή αν τα χρειάζεσαι.'))return;workspace={version:1,areas:[],metrics:[],purpose:{text:'',visible:true}};view='all';tab='today';return await commit('Καθαρίστηκαν τα τοπικά δεδομένα.');}
   }catch(e){toast(e.message||'Προέκυψε σφάλμα.',true);}
 });
 document.addEventListener('change',e=>{
+  if(e.target?.dataset?.action==='scheme-toggle'){workspace.appearance.scheme=e.target.checked?'dark':'light';commit(e.target.checked?'Σκούρο θέμα.':'Φωτεινό θέμα.');return;}
   if(e.target.id==='metric-type'){
     const type=e.target.value;
     const holder=document.getElementById('measurement-fields');
@@ -335,7 +419,7 @@ document.addEventListener('change',async event=>{
   const dataUrl=await compressVisionPhoto(file);
   workspace.vision.images=[...workspace.vision.images,{id:crypto.randomUUID(),title:cleanText(file.name.replace(/\.[^.]+$/,''),120),createdAt:new Date().toISOString(),dataUrl}];
   if(await commit('Η φωτογραφία προστέθηκε.'))showVisionForm();
-  else document.getElementById('active-dialog')?.close();
+  else closeSheet();
  }catch(error){toast(error.message||'Αποτυχία εισαγωγής εικόνας.',true);}
 });
 setInterval(()=>{
@@ -350,7 +434,7 @@ document.addEventListener('submit',async e=>{
     if(form.dataset.form==='area'){
       const name=cleanText(data.get('name'),80);if(!name)throw new Error('Συμπλήρωσε όνομα τομέα.');
       if(id){const a=areaById(id);if(!a)throw new Error('Δεν βρέθηκε ο φάκελος.');a.name=name;}
-      else workspace.areas.push(createArea(name,workspace.areas.length));
+      else {workspace.areas.push(createArea(name,workspace.areas.length));tab='goals';}
     }
     else if(form.dataset.form==='metric'){
       const raw={title:data.get('title'),kind:data.get('kind'),areaId:data.get('areaId'),type:data.get('type')||metricById(id)?.type,comparator:data.get('comparator')||'at_least',unit:data.get('unit')||'',desired:data.get('desired'),initial:data.get('initial'),currency:data.get('currency')||'EUR',period:data.get('period')||'week'};
@@ -393,16 +477,32 @@ document.addEventListener('submit',async e=>{
       if(reminders.length>=8) throw new Error('Μέχρι 8 υπενθυμίσεις.');
       const [hour,minute]=String(data.get('time')||'').split(':').map(Number);
       const next=reminderFromInput({id:crypto.randomUUID(),text:data.get('text'),hour,minute,notificationId:nextNotificationId(reminders)});
-      document.getElementById('active-dialog')?.close();
+      closeSheet();
       await persistReminders([...reminders,next]);
       return;
     }
     else return;
-    document.getElementById('active-dialog')?.close();await commit();
+    closeSheet();await commit();
   }catch(error){toast(error.message||'Έλεγξε τις τιμές που συμπλήρωσες.',true);}
 });
 render();
 requestPersistentStorage();
+applyPreviewFixture();
+async function applyPreviewFixture(){
+  try{
+    const response=await fetch(new URL('../preview.json', import.meta.url),{cache:'no-store'});
+    if(!response.ok)return;
+    const spec=await response.json();
+    if(!spec?.screen)return;
+    workspace=demoWorkspace();
+    normalizeWorkspace(workspace);
+    normalizeMetricOrders(workspace);
+    lastSaved=structuredClone(workspace);
+    tab=spec.screen==='settings'?'settings':'today';
+    render();
+    if(spec.screen==='sheet'&&workspace.metrics[0])showActualForm(workspace.metrics[0]);
+  }catch{/* Normal launch has no preview file. */}
+}
 async function requestPersistentStorage(){
   try{
     const storage=navigator.storage;
@@ -424,7 +524,7 @@ if('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capa
   });
   window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-themes-v10', import.meta.url),{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-native-v11', import.meta.url),{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);

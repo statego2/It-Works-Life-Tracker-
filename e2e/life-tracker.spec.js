@@ -6,7 +6,7 @@ async function resetApp(page) {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Η συνολική μου εικόνα" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Σήμερα" })).toBeVisible();
 }
 
 async function createAreaAndMetric(page) {
@@ -14,12 +14,12 @@ async function createAreaAndMetric(page) {
   await page.locator("#area-name").fill("Υγεία");
   await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Υγεία", level: 3 })).toBeVisible();
-  await page.getByRole("button", { name: "Νέος στόχος / standard" }).click();
+  await page.getByRole("button", { name: "Νέος στόχος" }).click();
   await page.locator("#metric-title").fill("Βήματα την ημέρα");
   await page.locator("#desired").fill("10000");
   await page.locator("#initial").fill("1000");
   await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" })).toBeVisible();
 }
 
 function currentValue(page) {
@@ -32,27 +32,29 @@ test("create area and item, update, reload, backup round trip", async ({ page })
   await createAreaAndMetric(page);
   await expect(currentValue(page)).toHaveText("1.000");
 
-  await page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" }).click();
-  await page.getByRole("button", { name: "Ενημέρωση", exact: true }).click();
+  await page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" }).click();
   await page.locator("#current-input").fill("8000");
   await page.locator("#active-dialog").getByRole("button", { name: "Καταγραφή" }).click();
   await expect(currentValue(page)).toHaveText("8.000");
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" })).toBeVisible();
+  await page.getByRole("tab", { name: "Στόχοι" }).click();
+  await expect(page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" })).toBeVisible();
   await expect(currentValue(page)).toHaveText("8.000");
   await expect(page.getByRole("heading", { name: "Υγεία", level: 3 })).toBeVisible();
 
+  await page.getByRole("tab", { name: "Ρυθμίσεις" }).click();
   const downloadPromise = page.waitForEvent("download");
-  await page.locator("footer").getByRole("button", { name: "Εξαγωγή JSON" }).click();
+  await page.getByRole("button", { name: "Εξαγωγή", exact: true }).click();
   const download = await downloadPromise;
   const backupPath = join(tmpdir(), `it-works-e2e-${Date.now()}.json`);
   await download.saveAs(backupPath);
 
-  await page.locator("footer").getByRole("button", { name: "Εκκαθάριση" }).click();
+  await page.getByRole("button", { name: "Εκκαθάριση" }).click();
   await expect(page.getByRole("button", { name: "Δημιουργία πρώτου τομέα" })).toBeVisible();
 
   await page.locator("#backup-file").setInputFiles(backupPath);
+  await page.getByRole("tab", { name: "Στόχοι" }).click();
   await expect(page.getByRole("heading", { name: "Υγεία", level: 3 })).toBeVisible();
   await expect(currentValue(page)).toHaveText("8.000");
 });
@@ -70,8 +72,7 @@ test("a failed save rolls the screen back and explains it in Greek", async ({ pa
       return original.call(this, key, value);
     };
   });
-  await page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" }).click();
-  await page.getByRole("button", { name: "Ενημέρωση", exact: true }).click();
+  await page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" }).click();
   await page.locator("#current-input").fill("9999");
   await page.locator("#active-dialog").getByRole("button", { name: "Καταγραφή" }).click();
   await expect(page.getByRole("alert")).toContainText("Δεν αποθηκεύτηκε");
@@ -79,6 +80,7 @@ test("a failed save rolls the screen back and explains it in Greek", async ({ pa
   await expect(page.locator("#toast")).toContainText("Δεν αποθηκεύτηκε");
   await expect(currentValue(page)).toHaveText("1.000");
   await page.reload();
+  await page.getByRole("tab", { name: "Στόχοι" }).click();
   await expect(currentValue(page)).toHaveText("1.000");
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
@@ -102,7 +104,7 @@ test("install metadata allows zoom and asks to keep storage", async ({ page }) =
   expect(viewport).not.toContain("maximum-scale");
   expect(viewport).toContain("viewport-fit=cover");
   await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
-  await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute("content", "default");
+  await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute("content", "black-translucent");
   await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "It Works");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "./icons/apple-touch-icon.png");
   const manifest = await page.evaluate(async () => (await (await fetch("./manifest.webmanifest")).json()));
@@ -121,6 +123,7 @@ test("the three dashboard directions stay on this device", async ({ page }) => {
   await resetApp(page);
   await page.getByRole("button", { name: "Δες ένα παράδειγμα" }).click();
   await expect(page.getByText("Κρατώ τον λόγο που δίνω στον εαυτό μου.")).toBeVisible();
+  await page.getByRole("tab", { name: "Ρυθμίσεις" }).click();
   await page.getByRole("button", { name: "Υγεία", exact: true }).click();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("health");
   await page.getByRole("button", { name: "Περιοδικό", exact: true }).click();
@@ -128,7 +131,7 @@ test("the three dashboard directions stay on this device", async ({ page }) => {
   await page.reload();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("editorial");
   await expect(page.locator(".compact-values").first().locator("span").first()).toContainText("ΤΩΡΑ");
-  await expect(page.locator(".compact-values").first().locator("span").nth(1)).toContainText("STANDARD");
+  await expect(page.locator(".compact-values").first().locator("span").nth(1)).toContainText("ΣΤΟΧΟΣ");
 });
 
 test("service worker serves the shell while offline", async ({ browser }) => {
@@ -142,10 +145,10 @@ test("service worker serves the shell while offline", async ({ browser }) => {
   try {
     await page.goto("/");
     await expect.poll(async () => page.evaluate(() => Boolean(navigator.serviceWorker?.controller)).catch(() => false)).toBe(true);
-    await expect(page.getByRole("heading", { name: "Η συνολική μου εικόνα" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Σήμερα" })).toBeVisible();
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Η συνολική μου εικόνα" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Σήμερα" })).toBeVisible();
   } finally {
     await context.close();
   }

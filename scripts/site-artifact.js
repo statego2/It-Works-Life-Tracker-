@@ -8,7 +8,7 @@ export function assembleSite(root = resolve(dirname(fileURLToPath(import.meta.ur
   rmSync(dest, { recursive: true, force: true });
   mkdirSync(resolve(dest, "src"), { recursive: true });
   mkdirSync(resolve(dest, "icons"), { recursive: true });
-  for (const file of ["index.html", "styles.css", "manifest.webmanifest", "sw.js"]) {
+  for (const file of ["index.html", "styles.css", "manifest.webmanifest", "sw.js", "preview.json"]) {
     cpSync(resolve(root, file), resolve(dest, file));
   }
   cpSync(resolve(root, "src"), resolve(dest, "src"), { recursive: true });
