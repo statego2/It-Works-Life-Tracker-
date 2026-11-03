@@ -29,7 +29,7 @@ test("a file left out of the service worker cache fails the deploy check", () =>
   const dest = assembleSite(undefined, mkdtempSync(join(tmpdir(), "itworks-cache-")));
   try {
     const swPath = join(dest, "sw.js");
-    const source = readFileSync(swPath, "utf8").replace("'./src/vision.js?v=20261103-native-v11',", "");
+    const source = readFileSync(swPath, "utf8").replace("'./src/vision.js?v=20261103-palette-v12',", "");
     writeFileSync(swPath, source);
     const problems = auditSite(dest);
     assert.ok(problems.some((problem) => problem.includes("not cached") && problem.includes("vision.js")));

@@ -245,3 +245,25 @@ input,textarea{user-select:text;-webkit-user-select:text}
 [data-scheme="light"] .segmented{background:#e5e5ea}
 [data-scheme="light"] .segmented button{color:#1c1c1e}
 [data-scheme="light"] .segmented button[aria-pressed="true"]{background:#fff}
+
+/* Default look: OLED black, electric blue, gold. */
+[data-scheme="dark"],[data-scheme="dark"] body,[data-scheme="dark"] .ios-app{background:#000;color:#f4f7fb}
+[data-scheme="dark"] .nav-bar.collapsed,[data-scheme="dark"] .tab-bar{background:#000000e6;border-color:#123056}
+[data-scheme="dark"] .tab-bar button[aria-selected="true"],[data-scheme="dark"] .nav-plus,[data-scheme="dark"] .text-btn{color:#5eb6ff}
+[data-scheme="dark"] .inset-group,[data-scheme="dark"] .goal-row,[data-scheme="dark"] .swipe-front{background:#070b12;box-shadow:0 0 0 1px rgba(70,150,255,.16),0 10px 32px rgba(20,80,180,.16)}
+[data-scheme="dark"] .settings-row,[data-scheme="dark"] .row-add,[data-scheme="dark"] .goal-row{color:#f4f7fb}
+[data-scheme="dark"] .current-hit strong{color:#f7fbff}
+[data-scheme="dark"] .target-hit strong,[data-scheme="dark"] .gold-mark,[data-direction="sanctuary"] .identity-eyebrow,[data-direction="editorial"] .identity-eyebrow{color:#e8c56a}
+[data-scheme="dark"] .compact-track{background:#101820}
+[data-scheme="dark"] .compact-track span{background:linear-gradient(90deg,#1d6dff,#7fd0ff);box-shadow:0 0 12px rgba(70,160,255,.7)}
+[data-scheme="dark"] .ios-app .primary-btn,[data-scheme="dark"] .ios-app .primary-btn:hover{background:linear-gradient(180deg,#69b6ff,#1d6dff);border-color:transparent;color:#fff;box-shadow:0 0 18px rgba(50,140,255,.5)}
+[data-scheme="dark"] .segmented{background:#0c121c}
+[data-scheme="dark"] .segmented button[aria-pressed="true"]{background:#143056;color:#d7ecff;box-shadow:0 0 14px rgba(50,140,255,.35)}
+[data-scheme="dark"] .toggle-row input:checked{background:#1d6dff;box-shadow:0 0 12px rgba(50,140,255,.55)}
+[data-scheme="dark"] .sheet{background:#05080e;border-top:1px solid rgba(90,160,255,.28);box-shadow:0 -16px 48px rgba(20,80,180,.25)}
+[data-scheme="dark"] .stepper button{background:#101820;color:#7fd0ff}
+[data-scheme="dark"] .vision-fallback{background:radial-gradient(ellipse at 72% 36%,rgba(232,197,106,.5),transparent 26%),radial-gradient(ellipse at 28% 72%,rgba(40,130,255,.75),transparent 46%),linear-gradient(180deg,#02040a,#071426 52%,#000);box-shadow:0 0 36px rgba(40,120,255,.28)}
+[data-scheme="dark"] .emblem{background:radial-gradient(circle at 50% 42%,#163056,#05070c 72%);border:1px solid rgba(232,197,106,.75);box-shadow:0 0 28px rgba(40,130,255,.5),inset 0 0 22px rgba(232,197,106,.28)}
+[data-direction="sanctuary"][data-scheme="dark"] .identity-board{background:radial-gradient(120% 70% at 50% 0%,rgba(50,130,255,.2),transparent 58%),#05080e;border:1px solid rgba(90,160,255,.32);box-shadow:0 0 42px rgba(30,100,220,.22);color:#f4f7fb}
+[data-direction="sanctuary"][data-scheme="dark"] .chip{background:#102033;color:#d7ecff;box-shadow:inset 0 0 0 1px rgba(90,160,255,.35)}
+[data-direction="sanctuary"][data-scheme="dark"] .affirmation-list b{border-bottom-color:rgba(232,197,106,.45)}

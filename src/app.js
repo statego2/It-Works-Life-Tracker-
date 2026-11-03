@@ -1,11 +1,11 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-native-v11';
-import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-native-v11';
-import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-native-v11';
-import {DIRECTION_LABELS,DIRECTIONS,moveAffirmation,orderedAffirmations} from './appearance.js?v=20261103-native-v11';
-import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-native-v11';
-import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-native-v11';
-import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-native-v11';
-import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-native-v11';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-palette-v12';
+import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-palette-v12';
+import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-palette-v12';
+import {DIRECTION_LABELS,DIRECTIONS,moveAffirmation,orderedAffirmations} from './appearance.js?v=20261103-palette-v12';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-palette-v12';
+import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-palette-v12';
+import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-palette-v12';
+import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-palette-v12';
 
 await initStorage();
 let workspace = loadWorkspace();
@@ -58,7 +58,7 @@ function applyAppearance(){
   document.documentElement.dataset.scheme=appearance.scheme;
   document.documentElement.style.colorScheme=appearance.scheme==='dark'?'dark':'light';
   const theme=document.querySelector('meta[name="theme-color"]');
-  if(theme)theme.content=appearance.scheme==='dark'?'#07080c':'#f6f7fb';
+  if(theme)theme.content=appearance.scheme==='dark'?'#000000':'#f6f7fb';
   syncStatusBar();
 }
 function bindChrome(){
@@ -524,7 +524,7 @@ if('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capa
   });
   window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-native-v11', import.meta.url),{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-palette-v12', import.meta.url),{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);
