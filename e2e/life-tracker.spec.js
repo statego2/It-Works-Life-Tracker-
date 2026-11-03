@@ -6,7 +6,7 @@ async function resetApp(page) {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Σήμερα" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Η συνολική μου εικόνα" })).toBeVisible();
 }
 
 async function createAreaAndMetric(page) {
@@ -14,12 +14,12 @@ async function createAreaAndMetric(page) {
   await page.locator("#area-name").fill("Υγεία");
   await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Υγεία", level: 3 })).toBeVisible();
-  await page.getByRole("button", { name: "Νέος στόχος" }).click();
+  await page.getByRole("button", { name: "Νέος στόχος / standard" }).click();
   await page.locator("#metric-title").fill("Βήματα την ημέρα");
   await page.locator("#desired").fill("10000");
   await page.locator("#initial").fill("1000");
   await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" })).toBeVisible();
 }
 
 function currentValue(page) {
@@ -32,29 +32,27 @@ test("create area and item, update, reload, backup round trip", async ({ page })
   await createAreaAndMetric(page);
   await expect(currentValue(page)).toHaveText("1.000");
 
-  await page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" }).click();
+  await page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" }).click();
+  await page.getByRole("button", { name: "Ενημέρωση", exact: true }).click();
   await page.locator("#current-input").fill("8000");
   await page.locator("#active-dialog").getByRole("button", { name: "Καταγραφή" }).click();
   await expect(currentValue(page)).toHaveText("8.000");
 
   await page.reload();
-  await page.getByRole("tab", { name: "Στόχοι" }).click();
-  await expect(page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" })).toBeVisible();
   await expect(currentValue(page)).toHaveText("8.000");
   await expect(page.getByRole("heading", { name: "Υγεία", level: 3 })).toBeVisible();
 
-  await page.getByRole("tab", { name: "Ρυθμίσεις" }).click();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Εξαγωγή", exact: true }).click();
+  await page.locator("footer").getByRole("button", { name: "Εξαγωγή JSON" }).click();
   const download = await downloadPromise;
   const backupPath = join(tmpdir(), `it-works-e2e-${Date.now()}.json`);
   await download.saveAs(backupPath);
 
-  await page.getByRole("button", { name: "Εκκαθάριση" }).click();
+  await page.locator("footer").getByRole("button", { name: "Εκκαθάριση" }).click();
   await expect(page.getByRole("button", { name: "Δημιουργία πρώτου τομέα" })).toBeVisible();
 
   await page.locator("#backup-file").setInputFiles(backupPath);
-  await page.getByRole("tab", { name: "Στόχοι" }).click();
   await expect(page.getByRole("heading", { name: "Υγεία", level: 3 })).toBeVisible();
   await expect(currentValue(page)).toHaveText("8.000");
 });
@@ -72,7 +70,8 @@ test("a failed save rolls the screen back and explains it in Greek", async ({ pa
       return original.call(this, key, value);
     };
   });
-  await page.getByRole("button", { name: "Ενημέρωση: Βήματα την ημέρα" }).click();
+  await page.getByRole("button", { name: "Λεπτομέρειες: Βήματα την ημέρα" }).click();
+  await page.getByRole("button", { name: "Ενημέρωση", exact: true }).click();
   await page.locator("#current-input").fill("9999");
   await page.locator("#active-dialog").getByRole("button", { name: "Καταγραφή" }).click();
   await expect(page.getByRole("alert")).toContainText("Δεν αποθηκεύτηκε");
@@ -80,7 +79,6 @@ test("a failed save rolls the screen back and explains it in Greek", async ({ pa
   await expect(page.locator("#toast")).toContainText("Δεν αποθηκεύτηκε");
   await expect(currentValue(page)).toHaveText("1.000");
   await page.reload();
-  await page.getByRole("tab", { name: "Στόχοι" }).click();
   await expect(currentValue(page)).toHaveText("1.000");
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
@@ -118,20 +116,33 @@ test("install metadata allows zoom and asks to keep storage", async ({ page }) =
   expect(fontSize).toBeGreaterThanOrEqual(16);
 });
 
-test("the three dashboard directions stay on this device", async ({ page }) => {
+test("create a folder, a custom goal, mark it favorite, and reorder folders", async ({ page }) => {
   page.on("dialog", (dialog) => dialog.accept());
   await resetApp(page);
-  await page.getByRole("button", { name: "Δες ένα παράδειγμα" }).click();
-  await expect(page.getByText("Κρατώ τον λόγο που δίνω στον εαυτό μου.")).toBeVisible();
-  await page.getByRole("tab", { name: "Ρυθμίσεις" }).click();
-  await page.getByRole("button", { name: "Υγεία", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("health");
-  await page.getByRole("button", { name: "Περιοδικό", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("editorial");
-  await page.reload();
-  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.direction)).toBe("editorial");
-  await expect(page.locator(".compact-values").first().locator("span").first()).toContainText("ΤΩΡΑ");
-  await expect(page.locator(".compact-values").first().locator("span").nth(1)).toContainText("ΣΤΟΧΟΣ");
+  await page.getByRole("button", { name: "Δημιουργία πρώτου τομέα" }).click();
+  await page.locator("#area-name").fill("Υγεία");
+  await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
+  await page.getByRole("button", { name: "Νέος στόχος / standard" }).click();
+  await page.locator("#metric-title").fill("Ώρες ύπνου");
+  await page.locator("#unit").fill("ώρες");
+  await page.locator("#initial").fill("6");
+  await page.locator("#desired").fill("8");
+  await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
+  await expect(page.locator(".area-card").getByRole("button", { name: "Λεπτομέρειες: Ώρες ύπνου" })).toBeVisible();
+  await expect(page.locator(".area-card .compact-values span").first()).toContainText("6 ώρες");
+  await page.locator(".area-card").getByRole("button", { name: "Χρυσός στόχος" }).click();
+  await expect(page.getByRole("heading", { name: "Οι χρυσοί στόχοι μου" })).toBeVisible();
+  await expect(page.locator(".gold-section").getByRole("button", { name: "Λεπτομέρειες: Ώρες ύπνου" })).toBeVisible();
+  await page.getByRole("button", { name: "Νέος τομέας" }).click();
+  await page.locator("#area-name").fill("Σχέσεις");
+  await page.locator("#active-dialog").getByRole("button", { name: "Προσθήκη", exact: true }).click();
+  const relationships = page.locator(".area-card", { has: page.getByRole("heading", { name: "Σχέσεις", level: 3 }) });
+  await relationships.getByRole("button", { name: "Μετακίνηση πάνω" }).click();
+  await expect(page.locator(".area-card h3").first()).toHaveText("Σχέσεις");
+  await page.locator(".area-card").getByRole("button", { name: "Λεπτομέρειες: Ώρες ύπνου" }).click();
+  await page.locator(".area-card").getByRole("button", { name: "Επεξεργασία", exact: true }).click();
+  await expect(page.locator("#unit")).toHaveValue("ώρες");
+  await expect(page.locator("#desired")).toHaveValue("8");
 });
 
 test("service worker serves the shell while offline", async ({ browser }) => {
@@ -145,10 +156,10 @@ test("service worker serves the shell while offline", async ({ browser }) => {
   try {
     await page.goto("/");
     await expect.poll(async () => page.evaluate(() => Boolean(navigator.serviceWorker?.controller)).catch(() => false)).toBe(true);
-    await expect(page.getByRole("heading", { name: "Σήμερα" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Η συνολική μου εικόνα" })).toBeVisible();
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Σήμερα" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Η συνολική μου εικόνα" })).toBeVisible();
   } finally {
     await context.close();
   }

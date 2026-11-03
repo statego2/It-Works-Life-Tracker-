@@ -65,7 +65,7 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl ui "$UDID" appearance dark
           mkdir -p screenshots
-          for screen in dashboard sheet settings; do
+          for screen in home folder detail; do
             printf '{"screen":"%s"}\n' "$screen" > "$APP/public/preview.json"
             xcrun simctl install "$UDID" "$APP"
             xcrun simctl terminate "$UDID" com.statego2.itworks || true
