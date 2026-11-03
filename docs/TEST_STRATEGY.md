@@ -1,6 +1,6 @@
 # Test Strategy — It Works
 
-**Status:** running. `npm test` covers domain rules, backup validation, vision-photo sizing, save rollback and the Pages artifact check. `npm run test:e2e` is a Playwright smoke test at an iPhone viewport (create area and metric, update a value, reload, backup export and restore, failed-save rollback). GitHub Actions runs both. A separate workflow runs the draft Postgres RLS smoke test. Authenticated product journeys are still future work.
+**Status:** running. `npm test` covers domain rules, backup validation, vision-photo sizing, save rollback, the native-store migration, reminders, the widget snapshot and the Pages artifact check. `npm run test:e2e` is a Playwright smoke test at an iPhone viewport (create area and metric, update a value, reload, backup export and restore, failed-save rollback). GitHub Actions runs both, plus an unsigned iOS Simulator build of the Capacitor app and widget. A separate workflow runs the draft Postgres RLS smoke test. Authenticated product journeys are still future work.
 
 ## Test layers
 1. **Pure unit tests:** domain comparators, value validation, timezone functions, version interpretation and history selectors.

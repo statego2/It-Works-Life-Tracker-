@@ -49,6 +49,16 @@ Maintained to distinguish **confirmed product requirements**, **reversible techn
 - Supabase (T-002) remains a proposal for cloud accounts. This decision does not connect it.
 - GitHub Pages is the current public host. Two publishers are configured today (the legacy "Deploy from a branch" source on `main` `/`, and `.github/workflows/deploy-pages.yml`). Only one should publish. Switching the source to GitHub Actions is a repository setting and is recorded in the README; it is not changed from a pull request.
 
+## ADR-002 — iOS storage file and home-screen widget (2026-11-03)
+**Status:** Accepted as the implementation of ADR-001. The product owner approved the Capacitor wrap.
+
+**Decision.**
+- The iPhone app is a Capacitor 8 shell around the same static web files. `npm run cap:sync` copies those files. They are not rewritten in Swift.
+- On iOS the workspace is a JSON file via Capacitor Filesystem (`Directory.Data`), not Preferences. Vision-board photos can be too large for UserDefaults. The website keeps using localStorage.
+- The first native launch copies localStorage once if the file is still empty. A JSON backup import uses the same validation as the website and writes the native file.
+- Starred goals for the widget are a small snapshot in the App Group `group.com.statego2.itworks`. Current is the left value and the target is the right value. The full workspace is not placed in the App Group.
+- Reminders are scheduled on the device with Capacitor Local Notifications. There is no server. The website stores the reminder list and does not schedule a notification.
+
 **Stack changes** may be made by implementers if justified with maintenance, security, deployment and portability trade-offs in an Architecture Decision Record (ADR).
 
 ## Open questions (defer without blocking foundation)
