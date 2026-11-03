@@ -6,3 +6,7 @@ node_modules/
 coverage/
 dist/
 .next/
+_site/
+test-results/
+playwright-report/
+blob-report/

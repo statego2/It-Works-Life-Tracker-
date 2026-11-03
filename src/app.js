@@ -1,7 +1,8 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-backup-v1';
-import {exportWorkspace,importWorkspace,isStorageBlocked,loadWorkspace,saveWorkspace} from './storage.js?v=20261103-backup-v1';
-import {parseBackup} from './backup.js?v=20261103-backup-v1';
-import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-backup-v1';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-iphone-v8';
+import {exportWorkspace,importWorkspace,isStorageBlocked,loadWorkspace,saveWorkspace} from './storage.js?v=20261103-iphone-v8';
+import {parseBackup} from './backup.js?v=20261103-iphone-v8';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-iphone-v8';
+import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-iphone-v8';
 
 let workspace = loadWorkspace();
 workspace.notes ??=[];
@@ -9,6 +10,8 @@ workspace.vision ??={visible:false,mode:'fixed',rotationHours:3,images:[]};
 let view = 'all';
 let ordering = false;
 normalizeMetricOrders(workspace);
+let lastSaved = structuredClone(workspace);
+let saveError = '';
 let toastTimer;
 const root = document.getElementById('root');
 const modalRoot = document.getElementById('modal-root');
@@ -21,11 +24,18 @@ const areaById = id => workspace.areas.find(a => a.id === id);
 const noteById = id => workspace.notes.find(n => n.id === id);
 function toast(message, error=false) {
   const el=document.getElementById('toast');el.textContent=message;el.className=error?'show error':'show';
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='',4500);
+  el.setAttribute('aria-live', error?'assertive':'polite');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='', error?8000:4500);
 }
 function commit(message='Αποθηκεύτηκε σε αυτή τη συσκευή') {
   normalizeMetricOrders(workspace);
-  const ok=saveWorkspace(workspace);render();toast(ok?message:'Δεν αποθηκεύτηκε! Κράτησε backup ή κάνε επαναφορά.',!ok);
+  const result=commitWorkspace(workspace, lastSaved, saveWorkspace);
+  workspace=result.workspace;
+  saveError=result.ok?'':result.message;
+  if(result.ok) lastSaved=structuredClone(workspace);
+  render();
+  toast(result.ok?message:(result.message||SAVE_ROLLBACK_MESSAGE), !result.ok);
+  return result.ok;
 }
 function escapeAttrColor(color){return /^#[0-9a-fA-F]{6}$/.test(String(color))?color:'#7067cf';}
 function valueForInput(value){return !value?'':value.type==='boolean'?(value.value?'yes':'no'):String(value.amount);}
@@ -110,7 +120,7 @@ function render(){
     <main class="main-content">
       <header class="topbar"><div class="topbar-brand">IT WORKS <span>/ LIFE TRACKER</span></div><div class="topbar-actions"><details class="settings-popover"><summary class="settings-toggle ${ordering?'settings-active':''}" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.542-.94 3.308.826 2.368 2.368a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.542-.826 3.308-2.368 2.368a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.542.94-3.308-.826-2.368-2.368a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.542.826-3.308 2.368-2.368a1.724 1.724 0 0 0 2.573-1.066Z"/><circle cx="12" cy="12" r="3"/></svg></summary><div class="settings-panel"><button type="button" data-action="toggle-order">${ordering?'Τέλος αλλαγής σειράς':'Αλλαγή σειράς'}</button><button type="button" data-action="export">Εξαγωγή δεδομένων</button><button type="button" data-action="import">Επαναφορά backup</button><button type="button" data-action="add-note">Νέα σημείωση</button><button type="button" data-action="vision">Vision Board</button></div></details></div></header>
       <div class="content-wrap">
-        <div class="page-heading"><h1>${esc(title)}</h1></div>${view==='all'?renderVision():''}${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}
+        <div class="page-heading"><h1>${esc(title)}</h1></div>${view==='all'?renderVision():''}${isStorageBlocked()?'<div class="save-warning">Τα αποθηκευμένα δεδομένα δεν διαβάζονται. Η αποθήκευση έχει κλειδωθεί· κάνε επαναφορά backup από τις ρυθμίσεις.</div>':''}${saveError?`<div class="save-warning" role="alert">${esc(saveError)}</div>`:''}
         ${view==='all'?`${workspace.purpose.visible && workspace.purpose.text?`<section class="purpose-card"><div><div class="purpose-eyebrow">✦ Ο ΣΚΟΠΟΣ ΜΟΥ</div><p>${esc(workspace.purpose.text)}</p></div><button class="purpose-edit" data-action="purpose" aria-label="Επεξεργασία σκοπού">✎</button></section>`:`<button class="purpose-placeholder" data-action="purpose">✦ ${workspace.purpose.text?'Εμφάνισε ξανά τον σκοπό μου':'Πρόσθεσε τον προσωπικό σου σκοπό'} <span>＋</span></button>`}
         `:''}
         ${showGold?`<section class="gold-section"><div class="section-heading"><div><h2>Οι χρυσοί στόχοι μου</h2></div><button class="text-btn" data-action="navigate" data-view="gold">Προβολή όλων →</button></div><div class="gold-grid">${gold.slice(0,3).map((m,i)=>renderMetric(m,true,'gold',i,gold.length)).join('')}</div></section>`:''}
@@ -203,7 +213,7 @@ document.addEventListener('click',event=>{
     if(action==='purpose')return showPurposeForm();
     if(action==='add-note')return showNoteForm();
     if(action==='vision')return showVisionForm();
-    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;const previous=workspace.vision.images;workspace.vision.images=previous.filter(i=>i.id!==id);if(!saveWorkspace(workspace)){workspace.vision.images=previous;throw new Error('Δεν αποθηκεύτηκε η αλλαγή.');}return showVisionForm();}
+    if(action==='delete-image'){if(!confirm('Αφαίρεση φωτογραφίας;'))return;workspace.vision.images=workspace.vision.images.filter(i=>i.id!==id);if(commit('Η φωτογραφία αφαιρέθηκε.'))showVisionForm();else document.getElementById('active-dialog')?.close();return;}
     if(action==='edit-note')return showNoteForm(noteById(id));
     if(action==='delete-note'){if(!confirm('Να διαγραφεί η σημείωση;'))return;workspace.notes=workspace.notes.filter(n=>n.id!==id);document.getElementById('active-dialog')?.close();return commit();}
     if(action==='import'){document.getElementById('backup-file')?.click();return;}
@@ -230,6 +240,7 @@ document.addEventListener('change',async e=>{
   parseBackup(text);
   if(!confirm('Η επαναφορά θα αντικαταστήσει όλα τα τοπικά δεδομένα. Συνέχεια;'))return;
   workspace=importWorkspace(text);
+  lastSaved=structuredClone(workspace);
   normalizeMetricOrders(workspace);
   view='all';commit('Το backup επαναφέρθηκε.');
  }catch(error){toast(error.message||'Το backup απορρίφθηκε.',true);}
@@ -241,10 +252,9 @@ document.addEventListener('change',async event=>{
  try{
   if(workspace.vision.images.length>=8)throw new Error('Μέχρι 8 φωτογραφίες.');
   const dataUrl=await compressVisionPhoto(file);
-  const previous=workspace.vision.images;
-  workspace.vision.images=[...previous,{id:crypto.randomUUID(),title:cleanText(file.name.replace(/\.[^.]+$/,''),120),createdAt:new Date().toISOString(),dataUrl}];
-  if(!saveWorkspace(workspace)){workspace.vision.images=previous;throw new Error('Δεν υπάρχει αρκετός χώρος αποθήκευσης.');}
-  showVisionForm();
+  workspace.vision.images=[...workspace.vision.images,{id:crypto.randomUUID(),title:cleanText(file.name.replace(/\.[^.]+$/,''),120),createdAt:new Date().toISOString(),dataUrl}];
+  if(commit('Η φωτογραφία προστέθηκε.'))showVisionForm();
+  else document.getElementById('active-dialog')?.close();
  }catch(error){toast(error.message||'Αποτυχία εισαγωγής εικόνας.',true);}
 });
 setInterval(()=>{
@@ -284,6 +294,17 @@ document.addEventListener('submit',e=>{
   }catch(error){toast(error.message||'Έλεγξε τις τιμές που συμπλήρωσες.',true);}
 });
 render();
+requestPersistentStorage();
+async function requestPersistentStorage(){
+  try{
+    const storage=navigator.storage;
+    if(!storage?.persist)return;
+    const already=storage.persisted?await storage.persisted():false;
+    if(!already)await storage.persist();
+  }catch(error){
+    console.warn('It Works: persistent storage was not granted.',error);
+  }
+}
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
   // A new service worker takes control without retaining the previous offline shell.
   // Reload only once per tab when the controller actually changes.
@@ -295,7 +316,7 @@ if('serviceWorker' in navigator && location.protocol !== 'file:'){
   });
   window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register('./sw.js?v=20261103-backup-v1',{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-iphone-v8', import.meta.url),{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);

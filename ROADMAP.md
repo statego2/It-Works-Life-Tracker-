@@ -15,12 +15,13 @@
 
 ## Release 1 — Real application scaffold
 **Deliverables**
-- [ ] Initialize TypeScript workspace and web application (recommended Next.js).
-- [ ] Create a minimal pure domain package and typed contracts package.
-- [ ] Responsive baseline, accessibility primitives and honest empty/loading/error states.
-- [ ] Env template, lint, formatting, typecheck, unit test runner and CI workflow.
-- [ ] README development instructions with actual verified commands.
-- [ ] PWA manifest/installability plan with an explicit online/offline policy.
+- [x] Working web client: the vanilla JavaScript PWA at the repository root (ADR-001). A Next.js rewrite is not the current path.
+- [x] Pure comparison logic in `src/domain.js` (no DOM) with unit tests. A separate TypeScript package is deferred.
+- [x] Responsive Greek UI, empty states and an explicit local-only warning. Final visual design remains open (P-010).
+- [x] `npm test`, `npm run check`, Playwright iPhone smoke test and GitHub Actions.
+- [x] README development instructions with actual commands.
+- [x] PWA manifest, PNG home-screen icons and a service worker that caches the app shell only (not private workspace data).
+- [ ] Authenticated cloud persistence. The app is still local to one browser.
 
 **Acceptance gate:** fresh clone can install, run, typecheck, lint and test with documented commands. Test or demo must not require production secrets.
 
@@ -86,7 +87,7 @@
 - [ ] User-selected priorities, next action suggestions, dependency mapping.
 - [ ] Milestone timelines and optional 5-/10-year scenarios with transparent assumptions.
 - [ ] User-authorized reminder and recurrence engines; event-based completion tracking.
-- [ ] Native iOS/Android app using shared packages and authenticated API contracts.
+- [ ] iPhone app as a Capacitor wrap of this PWA (ADR-001), including later reminders and widgets. Not Expo or React Native.
 - [ ] Opt-in AI features with privacy protections and explainable reasoning.
 - [ ] Optional integration/import tools.
 
@@ -110,6 +111,4 @@ Any agent proposing a major deviation should document why, what is delayed, and 
 - PR description includes what was built, how to verify, limitations and next concrete steps.
 
 ## First development ticket
-**Ticket 001 — Executable scaffold + pure comparison domain**
-
-Create workspace tooling, minimal web entry point, isolated comparison contract and tests for: unknown actual, count 1→4, boolean false→true, weekly frequency 1→2, money with matching currency/period, and lower-is-better comparator. Build a truthful placeholder for the eventual dashboard, not a detailed design. Include README commands and CI. Do not expose secrets or require a live cloud database for pure domain tests.
+**Ticket 001 — Executable scaffold + pure comparison domain** — done in the vanilla JavaScript PWA (`src/domain.js`, `tests/domain.test.js`, GitHub Actions). Do not restart it as a Next.js or TypeScript scaffold. Later iPhone work follows ADR-001 (Capacitor wrap), not Expo.

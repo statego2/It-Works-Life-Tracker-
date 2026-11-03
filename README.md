@@ -14,7 +14,10 @@ Visit [the published GitHub Pages prototype](https://statego2.github.io/It-Works
 npm run dev
 npm run check
 npm test
+npm run test:e2e
 ```
+
+`npm run test:e2e` needs Chromium for Playwright once: `npx playwright install chromium`. It drives the app at an iPhone-sized viewport.
 
 The app stores data in the **current browser's localStorage**. This is not a secure cloud account. The Settings menu includes **Export** and **Restore backup**; save a copy before clearing browser data. Vision images are compressed and stored locally, so keep exports small. Do not add highly sensitive information until authenticated, private cloud storage is implemented and verified.
 
@@ -66,6 +69,20 @@ Tests run in GitHub Actions, including an isolated PostgreSQL 16 two-account RLS
 4. Never seed real personal financial, romantic, religious, or health information into public repository files or demos. Use clearly fictional sample data.
 5. Do not declare the app live, synced, secure, or PWA-installable until those behaviors are implemented and verified.
 
+## GitHub Pages
+
+The site is published from `.github/workflows/deploy-pages.yml`, which copies the runtime files (all of `src/`, icons, the manifest and the service worker) and fails if the app references a file that is not in that folder.
+
+The repository setting **Settings → Pages → Build and deployment → Source** is still **Deploy from a branch** (`main` `/`). That legacy publisher and the Actions workflow both run on every push to `main`, and whichever finishes last becomes the live site. A pull request cannot change that setting. To keep a single publisher:
+
+1. Open this repository on GitHub.
+2. Go to **Settings → Pages**.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions** (not "Deploy from a branch").
+4. Save if GitHub shows a save button.
+5. On the Actions tab, confirm that **pages build and deployment** no longer starts on push, and that **Publish It Works to GitHub Pages** does.
+
+Until that click, both publishers include the runtime files, so a race should no longer blank the app. It can still replace one deploy with the other.
+
 ## Next implementation target
 
-Complete a real **authenticated API and secure cloud adapter** with migrations and tested account isolation, keeping the existing browser data portable. Native iOS widgets and notifications require a separate Mac/Xcode phase. See [ROADMAP.md](ROADMAP.md) for the intended progression.
+Complete a real **authenticated API and secure cloud adapter** with migrations and tested account isolation, keeping the existing browser data portable. The confirmed iPhone path after this PWA is a **Capacitor wrap of the same web app** (see ADR-001 in [docs/DECISIONS.md](docs/DECISIONS.md)), not Expo. Widgets and notifications stay a later Mac/Xcode phase. See [ROADMAP.md](ROADMAP.md) for the intended progression.
