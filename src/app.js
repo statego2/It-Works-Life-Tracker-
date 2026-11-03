@@ -1,11 +1,11 @@
-import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-palette-v12';
-import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-palette-v12';
-import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-palette-v12';
-import {DIRECTION_LABELS,DIRECTIONS,moveAffirmation,orderedAffirmations} from './appearance.js?v=20261103-palette-v12';
-import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-palette-v12';
-import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-palette-v12';
-import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-palette-v12';
-import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-palette-v12';
+import {addObservation,changeTarget,cleanText,compareMetric,createArea,createMetric,demoWorkspace,describeGap,formatValue,getCurrent,getTarget,metricsInArea,orderedAreas,orderedGoldMetrics,normalizeMetricOrders,moveMetric,metricProgress,VALUE_TYPES} from './domain.js?v=20261103-opal-v13';
+import {exportWorkspace,importWorkspace,initStorage,isStorageBlocked,loadReminders,loadWorkspace,saveReminders,saveWorkspace} from './storage.js?v=20261103-opal-v13';
+import {normalizeWorkspace,parseBackup} from './backup.js?v=20261103-opal-v13';
+import {DIRECTION_LABELS,DIRECTIONS,moveAffirmation,orderedAffirmations} from './appearance.js?v=20261103-opal-v13';
+import {currentVisionImage,compressVisionPhoto} from './vision.js?v=20261103-opal-v13';
+import {commitWorkspace,SAVE_ROLLBACK_MESSAGE} from './persist.js?v=20261103-opal-v13';
+import {applyReminderSchedule,canScheduleNatively,nextNotificationId,reminderFromInput,sanitizeReminders} from './reminders.js?v=20261103-opal-v13';
+import {goldWidgetSnapshot} from './widget-snapshot.js?v=20261103-opal-v13';
 
 await initStorage();
 let workspace = loadWorkspace();
@@ -106,7 +106,8 @@ function renderSwitcher(){
 function renderHero(){
   const image=workspace.vision?.visible?currentVisionImage(workspace.vision):null;
   const emblem=workspace.vision?.visible?(workspace.vision.images||[]).find(item=>item!==image&&item.id!==image?.id):null;
-  return `<section class="vision-hero">${image?`<img class="vision-photo" src="${image.dataUrl}" alt="${esc(image.title||'Εικόνα οράματος')}"/>`:`<div class="vision-fallback" role="img" aria-label="Ουδέτερη εικόνα, χωρίς προσωπική φωτογραφία"></div>`}<button type="button" class="vision-edit" data-action="vision" aria-label="Επεξεργασία Vision Board">✎</button>${emblem?`<img class="emblem-photo" src="${emblem.dataUrl}" alt="${esc(emblem.title||'Έμβλημα')}"/>`:`<div class="emblem" aria-hidden="true"></div>`}</section>`;
+  const fallback=`<div class="vision-fallback" role="img" aria-label="Ουδέτερη εικόνα, χωρίς προσωπική φωτογραφία"><div class="crystal" aria-hidden="true"></div><div class="crystal-glow" aria-hidden="true"></div></div>`;
+  return `<section class="vision-hero">${image?`<img class="vision-photo" src="${image.dataUrl}" alt="${esc(image.title||'Εικόνα οράματος')}"/>`:fallback}<button type="button" class="vision-edit" data-action="vision" aria-label="Επεξεργασία Vision Board">✎</button>${emblem?`<img class="emblem-photo" src="${emblem.dataUrl}" alt="${esc(emblem.title||'Έμβλημα')}"/>`:''}</section>`;
 }
 function renderAffirmations(){
   if(!workspace.appearance?.showAffirmations)return '';
@@ -153,6 +154,38 @@ function showReminderForm(){
 function escapeAttrColor(color){return /^#[0-9a-fA-F]{6}$/.test(String(color))?color:'#7067cf';}
 function valueForInput(value){return !value?'':value.type==='boolean'?(value.value?'yes':'no'):String(value.amount);}
 function valueLabel(value,metric){return value?`${formatValue(value)}${value.type==='number'&&metric.unit?' '+esc(metric.unit):''}`:'Δεν έχει καταγραφεί';}
+function periodSuffix(period){return {day:'/ημέρα',week:'/εβδ.',month:'/μήνα',year:'/έτος'}[period]||'';}
+function figureHtml(value,metric){
+  if(!value)return '<strong class="figure-unknown">Δεν έχει καταγραφεί</strong>';
+  if(value.type==='boolean')return `<strong>${value.value?'Ναι':'Όχι'}</strong>`;
+  const amount=new Intl.NumberFormat('el-GR',{maximumFractionDigits:2}).format(value.amount);
+  const [whole,frac]=amount.split(',');
+  let rest='';
+  if(value.type==='money')rest=` ${value.currency==='EUR'?'€':value.currency}${periodSuffix(value.period)}`;
+  else if(value.type==='percentage')rest='%';
+  else if(value.type==='frequency')rest=periodSuffix(value.period);
+  else if(metric.unit)rest=` ${metric.unit}`;
+  return `<strong><b>${esc(whole)}</b>${frac?`<em class="figure-frac">,${esc(frac)}</em>`:''}${rest?`<em class="figure-rest">${esc(rest)}</em>`:''}</strong>`;
+}
+function progressRing(metric,progress,currentText,targetText){
+  if(!progress)return '';
+  const pct=new Intl.NumberFormat('el-GR',{maximumFractionDigits:0}).format(progress.percentage);
+  return `<div class="progress-ring" style="--fill:${progress.filled}%" role="progressbar" aria-label="${esc(metric.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.filled}" aria-valuetext="${esc(currentText)} από ${esc(targetText)}"><span aria-hidden="true">${pct}%</span></div>`;
+}
+function iconTile(path,tone=''){
+  return `<span class="icon-tile${tone?` ${tone}`:''}" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="${path}"/></svg></span>`;
+}
+const ROW_ICONS={
+  purpose:'M12 2.8 14.7 8.6 21 9.3 16.3 13.6 17.6 20 12 16.8 6.4 20 7.7 13.6 3 9.3 9.3 8.6 12 2.8Z',
+  affirmations:'M5 6.2h14v2H5v-2Zm0 4.8h14v2H5v-2Zm0 4.8h9v2H5v-2Z',
+  identity:'M12 3.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8ZM5.2 19.4c.7-3.2 3.4-5 6.8-5s6.1 1.8 6.8 5v1H5.2v-1Z',
+  reminders:'M12 3.4a5.4 5.4 0 0 1 5.4 5.4v2.6l1.4 2.4H5.2l1.4-2.4V8.8A5.4 5.4 0 0 1 12 3.4Zm-1.5 12.6h3a1.5 1.5 0 0 1-3 0Z',
+  'add-note':'M6 3.8h8.2L18.2 8v12.2H6V3.8Zm7.4.8V8h3.4',
+  export:'M11 3h2v9.4l2.7-2.7 1.4 1.4L12 16.4 6.9 11.1l1.4-1.4L11 12.4V3ZM5 18.2h14v2.2H5v-2.2Z',
+  import:'M11 13.6V4.2h2v9.4l2.7-2.7 1.4 1.4L12 17.2 6.9 12.3l1.4-1.4 2.7 2.7ZM5 18.6h14v2.2H5v-2.2Z',
+  'load-demo':'M12 2.6 13.8 8 19.4 9.6 13.8 11.2 12 16.6 10.2 11.2 4.6 9.6 10.2 8 12 2.6Z',
+  reset:'M8 6.2h8l-.7 12.2H8.7L8 6.2Zm1.6-2.4h4.8l.4 2.4H9.2l.4-2.4Z'
+};
 function getCounts(){const comparisons=workspace.metrics.map(compareMetric);return {areas:workspace.areas.length,metrics:workspace.metrics.length,met:comparisons.filter(x=>x.status==='met').length,unknown:comparisons.filter(x=>x.status==='unknown').length};}
 
 function renderMetric(metric, condensed=false, collection='area', position=0, total=1) {
@@ -228,23 +261,22 @@ function renderGoalRow(metric){
   const result=compareMetric(metric), actual=result.actual?.value, target=result.target?.value;
   const progress=metricProgress(metric,result);
   const currentText=valueLabel(actual,metric), targetText=valueLabel(target,metric);
-  const progressMarkup=progress
-    ? `<div class="compact-track" role="progressbar" aria-label="${esc(metric.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.filled}" aria-valuetext="${esc(currentText)} από ${esc(targetText)}"><span style="width:${progress.filled}%"></span></div>`
-    : `<div class="compact-state">${result.status==='unknown'?'Δεν έχει καταγραφεί':result.status==='incompatible'?'Μη συγκρίσιμες τιμές':result.status==='not_configured'?'Χωρίς στόχο':metric.type==='boolean'?(result.status==='met'?'Σύμφωνο με τον στόχο':'Διαφορετική κατάσταση'):'Χωρίς ποσοστό'}</div>`;
-  return `<div class="swipe-row" data-id="${esc(metric.id)}"><div class="swipe-actions"><button type="button" data-action="edit-metric" data-id="${esc(metric.id)}">Επεξεργασία</button><button type="button" data-action="delete-metric" data-id="${esc(metric.id)}">Διαγραφή</button></div><button type="button" class="goal-row swipe-front compact-card" data-action="update" data-id="${esc(metric.id)}" aria-label="Ενημέρωση: ${esc(metric.title)}"><div class="goal-title"><span>${esc(metric.title)}</span>${metric.gold?'<i class="gold-mark" aria-label="Χρυσός στόχος">★</i>':''}</div><div class="compact-values"><span class="current-hit"><small>ΤΩΡΑ</small><strong>${currentText}</strong></span><span class="target-hit"><small>ΣΤΟΧΟΣ</small><strong>${targetText}</strong></span></div>${progressMarkup}</button></div>`;
+  const ring=progressRing(metric,progress,currentText,targetText);
+  const state=progress?'':`<div class="compact-state">${result.status==='unknown'?'Δεν έχει καταγραφεί':result.status==='incompatible'?'Μη συγκρίσιμες τιμές':result.status==='not_configured'?'Χωρίς στόχο':metric.type==='boolean'?(result.status==='met'?'Σύμφωνο με τον στόχο':'Διαφορετική κατάσταση'):'Χωρίς ποσοστό'}</div>`;
+  return `<div class="swipe-row${metric.gold?' is-gold':''}" data-id="${esc(metric.id)}"><div class="swipe-actions"><button type="button" data-action="edit-metric" data-id="${esc(metric.id)}">Επεξεργασία</button><button type="button" data-action="delete-metric" data-id="${esc(metric.id)}">Διαγραφή</button></div><button type="button" class="goal-row swipe-front compact-card" data-action="update" data-id="${esc(metric.id)}" aria-label="Ενημέρωση: ${esc(metric.title)}"><div class="goal-head">${ring}<div class="goal-title"><span>${esc(metric.title)}</span>${metric.gold?'<i class="gold-mark" aria-label="Χρυσός στόχος">★</i>':''}</div></div><div class="compact-values"><span class="current-hit"><small>ΤΩΡΑ</small>${figureHtml(actual,metric)}</span><span class="target-hit"><small>ΣΤΟΧΟΣ</small>${figureHtml(target,metric)}</span></div>${state}</button></div>`;
 }
 function renderToday(areas, gold){
   if(!areas.length)return `<section class="empty-native"><h2>Η ζωή σου, σε μία οθόνη</h2><p>Φτιάξε έναν τομέα και βάλε το τώρα αριστερά, τον στόχο δεξιά.</p><button type="button" class="primary-btn" data-action="add-area">Δημιουργία πρώτου τομέα</button><button type="button" class="text-btn" data-action="load-demo">Δες ένα παράδειγμα</button></section>`;
   const purpose=workspace.purpose.visible&&workspace.purpose.text?`<button type="button" class="purpose-line" data-action="purpose">${esc(workspace.purpose.text)}</button>`:'';
-  const goals=gold.length?`<section class="group"><h2 class="group-label">Χρυσοί στόχοι</h2><div class="inset-group">${gold.map(renderGoalRow).join('')}</div></section>`:'';
-  return `<div class="story-stack">${purpose}${renderHero()}${renderAffirmations()}${renderIdentity()}</div>${goals}`;
+  const goals=gold.length?`<section class="group"><h2 class="group-label">Χρυσοί στόχοι</h2><div class="inset-group tile-stack">${gold.map(renderGoalRow).join('')}</div></section>`:'';
+  return `${purpose?`<div class="story-stack">${purpose}</div>`:''}${renderHero()}${goals}<div class="calm-stack">${renderAffirmations()}${renderIdentity()}</div>`;
 }
 function renderGoals(areas, gold){
   if(!areas.length)return `<section class="empty-native"><h2>Δεν υπάρχουν στόχοι</h2><button type="button" class="primary-btn" data-action="add-area">Δημιουργία πρώτου τομέα</button></section>`;
-  const goldBlock=gold.length?`<section class="group"><h2 class="group-label">Χρυσοί στόχοι</h2><div class="inset-group">${gold.map(renderGoalRow).join('')}</div></section>`:'';
+  const goldBlock=gold.length?`<section class="group"><h2 class="group-label">Χρυσοί στόχοι</h2><div class="inset-group tile-stack">${gold.map(renderGoalRow).join('')}</div></section>`:'';
   const folders=areas.map(area=>{
     const metrics=metricsInArea(workspace, area.id);
-    return `<section class="group"><h3 class="group-title">${esc(area.name)}</h3><div class="inset-group">${metrics.map(renderGoalRow).join('')||'<p class="row-empty">Κανένας στόχος ακόμη.</p>'}<button type="button" class="row-add" data-action="add-metric" data-area="${esc(area.id)}">Νέος στόχος</button></div></section>`;
+    return `<section class="group"><h3 class="group-title">${esc(area.name)}</h3><div class="inset-group tile-stack">${metrics.map(renderGoalRow).join('')||'<p class="row-empty">Κανένας στόχος ακόμη.</p>'}<button type="button" class="row-add" data-action="add-metric" data-area="${esc(area.id)}">Νέος στόχος</button></div></section>`;
   }).join('');
   return `${goldBlock}${folders}`;
 }
@@ -254,9 +286,11 @@ function renderVisionTab(){
 function renderSettings(){
   const appearance=workspace.appearance;
   const directions=DIRECTIONS.map(direction=>`<button type="button" data-action="direction" data-direction="${direction}" aria-pressed="${appearance.direction===direction}">${DIRECTION_LABELS[direction]}</button>`).join('');
+  const textRows=[['purpose','Σκοπός'],['affirmations','Δηλώσεις'],['identity','Ταυτότητα και αποστολή'],['reminders','Υπενθυμίσεις'],['add-note','Νέα σημείωση']];
+  const dataRows=[['export','Εξαγωγή',''],['import','Επαναφορά',''],['load-demo','Δες ένα παράδειγμα',''],['reset','Εκκαθάριση','danger']];
   return `<section class="group"><h2 class="group-label">Εμφάνιση</h2><div class="inset-group settings-card"><div class="segmented" role="group" aria-label="Πρόταση εμφάνισης">${directions}</div><label class="toggle-row"><span>Σκούρο</span><input type="checkbox" data-action="scheme-toggle" ${appearance.scheme==='dark'?'checked':''} aria-label="Σκούρο θέμα"/></label></div><p class="group-foot">Οι τρεις όψεις είναι προτάσεις. Το Σημείωμα είναι η προεπιλογή.</p></section>
-  <section class="group"><h2 class="group-label">Κείμενα</h2><div class="inset-group">${[['purpose','Σκοπός'],['affirmations','Δηλώσεις'],['identity','Ταυτότητα και αποστολή'],['reminders','Υπενθυμίσεις'],['add-note','Νέα σημείωση']].map(([action,label])=>`<button type="button" class="settings-row" data-action="${action}">${label}</button>`).join('')}${workspace.notes.length?`<div class="notes-inline">${[...workspace.notes].sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt.localeCompare(a.updatedAt)).map(note=>`<button type="button" class="settings-row" data-action="edit-note" data-id="${esc(note.id)}">${esc(note.title||'Χωρίς τίτλο')}</button>`).join('')}</div>`:''}</div></section>
-  <section class="group"><h2 class="group-label">Δεδομένα</h2><div class="inset-group"><button type="button" class="settings-row" data-action="export">Εξαγωγή</button><button type="button" class="settings-row" data-action="import">Επαναφορά</button><button type="button" class="settings-row" data-action="load-demo">Δες ένα παράδειγμα</button><button type="button" class="settings-row danger" data-action="reset">Εκκαθάριση</button></div><p class="group-foot">Τα δεδομένα μένουν σε αυτή τη συσκευή. Δεν υπάρχει λογαριασμός ή συγχρονισμός.</p></section>`;
+  <section class="group"><h2 class="group-label">Κείμενα</h2><div class="inset-group">${textRows.map(([action,label])=>`<button type="button" class="settings-row" data-action="${action}">${iconTile(ROW_ICONS[action])}<span>${label}</span></button>`).join('')}${workspace.notes.length?`<div class="notes-inline">${[...workspace.notes].sort((a,b)=>Number(b.pinned)-Number(a.pinned)||b.updatedAt.localeCompare(a.updatedAt)).map(note=>`<button type="button" class="settings-row" data-action="edit-note" data-id="${esc(note.id)}">${esc(note.title||'Χωρίς τίτλο')}</button>`).join('')}</div>`:''}</div></section>
+  <section class="group"><h2 class="group-label">Δεδομένα</h2><div class="inset-group">${dataRows.map(([action,label,tone])=>`<button type="button" class="settings-row${tone?' danger':''}" data-action="${action}">${iconTile(ROW_ICONS[action],tone)}<span>${label}</span></button>`).join('')}</div><p class="group-foot">Τα δεδομένα μένουν σε αυτή τη συσκευή. Δεν υπάρχει λογαριασμός ή συγχρονισμός.</p></section>`;
 }
 function render(){
   applyAppearance();
@@ -524,7 +558,7 @@ if('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capa
   });
   window.addEventListener('load',async ()=>{
     try {
-      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-palette-v12', import.meta.url),{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(new URL('../sw.js?v=20261103-opal-v13', import.meta.url),{updateViaCache:'none'});
       await reg.update();
     } catch(error) {
       console.warn('Offline shell update unavailable:',error);

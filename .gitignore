@@ -17,3 +17,6 @@ ios/App/Pods/
 ios/App/App/public
 **/*.xcuserstate
 ios/App/App.xcodeproj/xcuserdata/
+
+# Private visual references (the owner's note and App Store screenshots). Never commit.
+it-works/ref/

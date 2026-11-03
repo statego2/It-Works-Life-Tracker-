@@ -64,7 +64,7 @@ Maintained to distinguish **confirmed product requirements**, **reversible techn
 
 The owner asked to compare looks before choosing one. The app can switch among three directions, stored on the workspace as `appearance.direction`: `sanctuary` (closest to a dark personal note), `health` (grouped iOS cards, light and dark), and `editorial` (serif, gold rule). Optional affirmations and four identity sections (ideal, life's work, mission, personal life) are user-written. They are empty until the user or the fictional demo fills them. None of the owner's private note text or photos is stored in this repository.
 
-The default screen is true black, with an electric blue accent and gold for starred goals and small labels. That palette is the current default of Σημείωμα, chosen after the owner pointed at Fuse, Opal and Stoic. It is still a proposal, not the approved final layout.
+The default screen is true black, with electric-blue glow and gold for starred goals. After a closer look at the Opal, Stoic and Fuse screenshots, Σημείωμα uses frosted dark cards, a cyan progress ring, a CSS crystal in place of a photo, and large white numbers whose units sit dimmer beside them. Stoic contributes the calm type and the space between tiles. Those screenshots are inspiration only and are not stored in this repository. The layout is still a proposal, not the approved final layout. Gold goals sit directly under the crystal so the overview is the first thing on Σήμερα. Affirmations and identity stay on that same tab, underneath.
 
 **Stack changes** may be made by implementers if justified with maintenance, security, deployment and portability trade-offs in an Architecture Decision Record (ADR).
 
