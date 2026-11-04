@@ -9,5 +9,12 @@
   "background_color": "#f6f7fb",
   "theme_color": "#f6f7fb",
   "lang": "el",
-  "icons": [{"src":"./icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+  "icons": [
+    {
+      "src": "./icons/itworks-brand.jpg",
+      "sizes": "180x180",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
 }

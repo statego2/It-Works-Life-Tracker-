@@ -14,6 +14,9 @@ In order:
 
 If something is unclear, take the smallest **reversible** interpretation consistent with these documents, explain it in the PR, and do not invent new user values.
 
+## Official app icon and brand asset
+Read `docs/BRAND_IDENTITY.md` before modifying app icons, favicons, splash artwork or visual branding. The owner-approved blue archway/stairs/star image at `icons/itworks-brand.jpg` is the canonical identity; do not substitute the legacy SVG or redesign it without explicit approval.
+
 ## 1. Unbreakable product invariants
 - Users, **not AI agents**, define life areas/folders and metrics.
 - A folder holds any number of user-defined **standards** and **goals**.
